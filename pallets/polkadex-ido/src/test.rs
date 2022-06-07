@@ -708,8 +708,8 @@ fn test_show_interest_in_round_randomized_participants() {
             InterestedParticipants::<Test>::iter_prefix_values(round_id)
                 .fold(0_u128, |sum, amount| sum.saturating_add(amount));
         let investors_count = InterestedParticipants::<Test>::iter_prefix_values(round_id).count();
-        // Check if an investor was randomly evicted
-        assert_eq!(investors_count <= 3, true);
+        // Check if an investor was not randomly evicted
+        assert_eq!(investors_count == 4, true);
         assert_eq!(
             InterestedParticipants::<Test>::contains_key(round_id, 6u64),
             true
