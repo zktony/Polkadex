@@ -721,7 +721,7 @@ pub mod pallet {
                 let mut rng = ChaChaRng::from_seed(*seed.0.as_fixed_bytes());
                 let random_index = rng.gen_range(0..replaceable_participants.len());
                 let evicted_participant = replaceable_participants[random_index];
-                <InterestedParticipants<T>>::remove(round_id, evicted_participant.0);
+                /* <InterestedParticipants<T>>::remove(round_id, evicted_participant.0);
                 let is_empty_participants = interested_participants_amounts.get_mut(evicted_participant.1).and_then(|investors| {
                     investors.remove(evicted_participant.0);
                     Some(investors.is_empty())
@@ -734,7 +734,7 @@ pub mod pallet {
                         }
                     }
                     _ => {}
-                };
+                };*/
             }
             <InterestedParticipants<T>>::insert(round_id, investor_address.clone(), amount.clone());
             let participants = interested_participants_amounts.entry(amount).or_insert(BTreeSet::new());
