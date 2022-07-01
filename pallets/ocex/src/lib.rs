@@ -35,6 +35,7 @@ pub use pallet::*;
 #[cfg(test)]
 mod tests;
 
+#[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
 pub mod weights;
 
@@ -42,7 +43,7 @@ pub use weights::*;
 
 /// A type alias for the balance type from this pallet's point of view.
 type BalanceOf<T> =
-<<T as Config>::NativeCurrency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
+	<<T as Config>::NativeCurrency as Currency<<T as frame_system::Config>::AccountId>>::Balance;
 
 // Definition of the pallet logic, to be aggregated at runtime definition through
 // `construct_runtime`.
@@ -60,10 +61,17 @@ pub mod pallet {
 	};
 	use frame_system::pallet_prelude::*;
 	use ias_verify::{verify_ias_report, SgxStatus};
-	use polkadex_primitives::{assets::AssetId, ocex::{AccountInfo, TradingPairConfig}, snapshot::EnclaveSnapshot, withdrawal::Withdrawal, ProxyLimit, WithdrawalLimit, AssetsLimit};
-	use sp_runtime::SaturatedConversion;
-	use polkadex_primitives::snapshot::Fees;
-	use sp_runtime::traits::{IdentifyAccount, Verify};
+	use polkadex_primitives::{
+		assets::AssetId,
+		ocex::{AccountInfo, TradingPairConfig},
+		snapshot::{EnclaveSnapshot, Fees},
+		withdrawal::Withdrawal,
+		AssetsLimit, ProxyLimit, WithdrawalLimit,
+	};
+	use sp_runtime::{
+		traits::{IdentifyAccount, Verify},
+		SaturatedConversion,
+	};
 	use sp_std::vec::Vec;
 
 	/// Our pallet's configuration trait. All our types and constants go in here. If the
@@ -85,28 +93,28 @@ pub mod pallet {
 
 		/// Assets Pallet
 		type OtherAssets: Mutate<
-			<Self as frame_system::Config>::AccountId,
-			Balance = BalanceOf<Self>,
-			AssetId = u128,
-		> + Inspect<<Self as frame_system::Config>::AccountId>;
+				<Self as frame_system::Config>::AccountId,
+				Balance = BalanceOf<Self>,
+				AssetId = u128,
+			> + Inspect<<Self as frame_system::Config>::AccountId>;
 
 		/// Origin that can send orderbook snapshots and withdrawal requests
 		type EnclaveOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
 		type Public: Clone
-		+ PartialEq
-		+ IdentifyAccount<AccountId = Self::AccountId>
-		+ core::fmt::Debug
-		+ codec::Codec
-		+ Ord
-		+ scale_info::TypeInfo;
+			+ PartialEq
+			+ IdentifyAccount<AccountId = Self::AccountId>
+			+ core::fmt::Debug
+			+ codec::Codec
+			+ Ord
+			+ scale_info::TypeInfo;
 
 		/// A matching `Signature` type.
 		type Signature: Verify<Signer = Self::Public>
-		+ Clone
-		+ PartialEq
-		+ core::fmt::Debug
-		+ codec::Codec
-		+ scale_info::TypeInfo;
+			+ Clone
+			+ PartialEq
+			+ core::fmt::Debug
+			+ codec::Codec
+			+ scale_info::TypeInfo;
 
 		/// Type representing the weight of this pallet
 		type WeightInfo: WeightInfo;
@@ -166,7 +174,12 @@ pub mod pallet {
 				if let Some(snapshot) = <Snapshots<T>>::get(snapshot_nonce.saturating_sub(1)) {
 					<IngressMessages<T>>::put(Vec::<
 						polkadex_primitives::ingress::IngressMessages<T::AccountId, BalanceOf<T>>,
-					>::from([polkadex_primitives::ingress::IngressMessages::LastestSnapshot(snapshot.merkle_root, snapshot.snapshot_number)]));
+					>::from([
+						polkadex_primitives::ingress::IngressMessages::LastestSnapshot(
+							snapshot.merkle_root,
+							snapshot.snapshot_number,
+						),
+					]));
 				} else {
 					<IngressMessages<T>>::put(Vec::<
 						polkadex_primitives::ingress::IngressMessages<T::AccountId, BalanceOf<T>>,
@@ -293,7 +306,7 @@ pub mod pallet {
 			min_order_qty: BalanceOf<T>,
 			max_order_qty: BalanceOf<T>,
 			max_spread: BalanceOf<T>,
-			min_depth: BalanceOf<T>
+			min_depth: BalanceOf<T>,
 		) -> DispatchResult {
 			ensure_root(origin)?;
 			ensure!(base != quote, Error::<T>::BothAssetsCannotBeSame);
@@ -315,7 +328,7 @@ pub mod pallet {
 				min_order_qty,
 				max_order_qty,
 				max_spread,
-				min_depth
+				min_depth,
 			};
 			<TradingPairs<T>>::insert(&base, &quote, trading_pair_info.clone());
 			<TradingPairsStatus<T>>::insert(&base, &quote, true);
@@ -355,7 +368,7 @@ pub mod pallet {
 		#[pallet::weight(10000)]
 		pub fn submit_snapshot(
 			origin: OriginFor<T>,
-			mut snapshot: EnclaveSnapshot<T::AccountId, BalanceOf<T>, WithdrawalLimit,AssetsLimit>,
+			mut snapshot: EnclaveSnapshot<T::AccountId, BalanceOf<T>, WithdrawalLimit, AssetsLimit>,
 			enclave: T::AccountId,
 			signature: T::Signature,
 		) -> DispatchResult {
@@ -381,7 +394,7 @@ pub mod pallet {
 				Error::<T>::EnclaveSignatureVerificationFailed
 			);
 			<Withdrawals<T>>::insert(snapshot.snapshot_number, snapshot.withdrawals);
-			<FeesCollected<T>>::insert(snapshot.snapshot_number,snapshot.fees.clone());
+			<FeesCollected<T>>::insert(snapshot.snapshot_number, snapshot.fees.clone());
 			snapshot.withdrawals =
 				BoundedVec::<Withdrawal<T::AccountId, BalanceOf<T>>, WithdrawalLimit>::default();
 			<Snapshots<T>>::insert(snapshot.snapshot_number, snapshot);
@@ -396,12 +409,13 @@ pub mod pallet {
 		pub fn collect_fees(
 			origin: OriginFor<T>,
 			snapshot_id: u32,
-			beneficiary: T::AccountId
+			beneficiary: T::AccountId,
 		) -> DispatchResult {
 			// TODO: The caller should be of operational council
 			let _sender = ensure_signed(origin)?;
 
-			let fees: Vec<Fees<BalanceOf<T>>> = <FeesCollected<T>>::get(snapshot_id).iter().cloned().collect();
+			let fees: Vec<Fees<BalanceOf<T>>> =
+				<FeesCollected<T>>::get(snapshot_id).iter().cloned().collect();
 			for fee in fees {
 				Self::transfer_asset(
 					&Self::get_custodian_account(),
@@ -410,10 +424,7 @@ pub mod pallet {
 					fee.asset,
 				)?;
 			}
-			Self::deposit_event(Event::FeesClaims {
-				beneficiary: beneficiary,
-				snapshot_id
-			});
+			Self::deposit_event(Event::FeesClaims { beneficiary, snapshot_id });
 			Ok(())
 		}
 
@@ -519,9 +530,9 @@ pub mod pallet {
 	#[pallet::event]
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
-		FeesClaims{
+		FeesClaims {
 			beneficiary: T::AccountId,
-			snapshot_id: u32
+			snapshot_id: u32,
 		},
 		MainAccountRegistered {
 			main: T::AccountId,
@@ -582,7 +593,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn trading_pairs_status)]
 	pub(super) type TradingPairsStatus<T: Config> =
-	StorageDoubleMap<_, Blake2_128Concat, AssetId, Blake2_128Concat, AssetId, bool, ValueQuery>;
+		StorageDoubleMap<_, Blake2_128Concat, AssetId, Blake2_128Concat, AssetId, bool, ValueQuery>;
 
 	// Snapshots Storage
 	#[pallet::storage]
@@ -591,7 +602,7 @@ pub mod pallet {
 		_,
 		Blake2_128Concat,
 		u32,
-		EnclaveSnapshot<T::AccountId, BalanceOf<T>, WithdrawalLimit,AssetsLimit>,
+		EnclaveSnapshot<T::AccountId, BalanceOf<T>, WithdrawalLimit, AssetsLimit>,
 		OptionQuery,
 	>;
 
@@ -604,7 +615,6 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn orderbook_operational_state)]
 	pub(super) type ExchangeState<T: Config> = StorageValue<_, bool, ValueQuery>;
-
 
 	// Fees collected
 	#[pallet::storage]
@@ -641,7 +651,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn get_registered_enclaves)]
 	pub(super) type RegisteredEnclaves<T: Config> =
-	StorageMap<_, Blake2_128Concat, T::AccountId, T::Moment, OptionQuery>;
+		StorageMap<_, Blake2_128Concat, T::AccountId, T::Moment, OptionQuery>;
 }
 
 // The main implementation block for the pallet. Functions here fall into three broad

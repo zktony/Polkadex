@@ -29,6 +29,7 @@ syn = "=1.0.96" # TODO: Remove this as soon as frame-support-procedural-tools be
 sp-core = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git', default-features = false }
 pallet-timestamp = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate' }
 ias-verify = { version = "0.1.5", default-features = false, branch = "polkadot-v0.9.19", git = "https://github.com/Polkadex-Substrate/pallets" }
+test-utils = { git = "https://github.com/Polkadex-Substrate/pallets.git", branch = "polkadot-v0.9.19", default-features = false, optional = true }
 
 [dev-dependencies]
 pallet-balances = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
@@ -47,7 +48,11 @@ std = [
     "sp-runtime/std",
     "sp-std/std",
     "sp-core/std",
-    "polkadex-primitives/std"
+    "polkadex-primitives/std",
+    "test-utils/std"
 ]
-runtime-benchmarks = ["frame-benchmarking/runtime-benchmarks"]
+runtime-benchmarks = [
+    "frame-benchmarking/runtime-benchmarks",
+    "test-utils/std"
+]
 try-runtime = ["frame-support/try-runtime"]
