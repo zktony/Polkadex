@@ -25,6 +25,8 @@ use frame_system::ensure_signed;
 
 use polkadex_primitives::assets::AssetId;
 
+use frame_support::pallet_prelude::*;
+use frame_system::pallet_prelude::*;
 use pallet_timestamp::{self as timestamp};
 use sp_runtime::traits::{AccountIdConversion, UniqueSaturatedInto};
 use sp_std::prelude::*;
@@ -52,14 +54,12 @@ pub mod pallet {
 	// Import various types used to declare pallet in scope.
 	use super::*;
 	use frame_support::{
-		pallet_prelude::*,
 		traits::{
 			fungibles::{Inspect, Mutate},
 			Currency, ReservableCurrency,
 		},
 		PalletId,
 	};
-	use frame_system::pallet_prelude::*;
 	use ias_verify::{verify_ias_report, SgxStatus};
 	use polkadex_primitives::{
 		assets::AssetId,
@@ -98,8 +98,9 @@ pub mod pallet {
 				AssetId = u128,
 			> + Inspect<<Self as frame_system::Config>::AccountId>;
 
-		/// Origin that can send orderbook snapshots and withdrawal requests
-		type EnclaveOrigin: EnsureOrigin<<Self as frame_system::Config>::Origin>;
+		/// Origin that can send orderbook snapshots and
+		/// withdrawal requests
+		type EnclaveOrigin: EnsureOrigin<Self::Origin>;
 		type Public: Clone
 			+ PartialEq
 			+ IdentifyAccount<AccountId = Self::AccountId>

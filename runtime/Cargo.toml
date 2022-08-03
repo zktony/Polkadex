@@ -112,7 +112,6 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
-pallet-society = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19"}
 
 
 [features]
@@ -216,6 +215,8 @@ runtime-benchmarks = [
     "frame-election-provider-support/runtime-benchmarks",
     "pdex-migration/runtime-benchmarks",
     "sp-npos-elections/bench",
+    "pallet-assets/runtime-benchmarks",
+    "pallet-balances/runtime-benchmarks",
     "pallet-ocex-lmp/runtime-benchmarks"
 ]
 
