@@ -1182,7 +1182,9 @@ impl EnsureOrigin<Origin> for EnsureRootOrTreasury {
 
 	#[cfg(feature = "runtime-benchmarks")]
 	fn successful_origin() -> Origin {
-		Origin::from(RawOrigin::Signed(AccountId::decode(&mut &[0u8; 32].to_vec()).unwrap()))
+		Origin::from(RawOrigin::Signed(
+			AccountId::decode(&mut [0u8; 32].to_vec().as_ref()).unwrap(),
+		))
 	}
 }
 

@@ -51,7 +51,6 @@ pallet-recovery = { default-features = false, git = "https://github.com/parityte
 pallet-election-provider-multi-phase = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 pallet-authority-discovery = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 pallet-child-bounties = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
-
 #frame
 frame-support = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 frame-system = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
@@ -87,7 +86,8 @@ frame-system-rpc-runtime-api = { default-features = false, git = "https://github
 frame-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", optional = true }
 frame-system-benchmarking = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", optional = true }
 pallet-society = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", optional = true }
-
+pallet-conviction-voting = { default-features = false, branch = "polkadot-v0.9.19", git = "https://github.com/paritytech/substrate" }
+pallet-referenda = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 
 # ORML Pallets
 orml-vesting = { git = "https://github.com/Polkadex-Substrate/open-runtime-module-library.git", branch="polkadot-v0.9.19", default-features = false }
@@ -170,7 +170,8 @@ std = [
     'sp-version/std',
     "sp-npos-elections/std",
     'pallet-assets/std',
-
+    'pallet-referenda/std',
+    "pallet-conviction-voting/std",
     "orml-vesting/std",
     "polkadex-primitives/std",
     "pdex-migration/std",
@@ -207,11 +208,14 @@ runtime-benchmarks = [
     "pallet-treasury/runtime-benchmarks",
     "pallet-democracy/runtime-benchmarks",
     "pallet-utility/runtime-benchmarks",
+    "pallet-conviction-voting/runtime-benchmarks",
+    "pallet-referenda/runtime-benchmarks",
     "frame-system-benchmarking",
     "orml-vesting/runtime-benchmarks",
     "hex-literal",
     "frame-election-provider-support/runtime-benchmarks",
-    "pdex-migration/runtime-benchmarks"
+    "pdex-migration/runtime-benchmarks",
+    "pallet-ocex-lmp/runtime-benchmarks"
 ]
 
 
@@ -246,5 +250,6 @@ try-runtime = [
     "pallet-utility/try-runtime",
     "orml-vesting/try-runtime",
     "pdex-migration/try-runtime",
-    "test-token-provider/try-runtime"
+    "test-token-provider/try-runtime",
+    "pallet-ocex-lmp/try-runtime"
 ]

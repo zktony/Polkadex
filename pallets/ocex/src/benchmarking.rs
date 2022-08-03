@@ -134,7 +134,7 @@ benchmarks! {
 		let origin = RawOrigin::Signed(account("caller", x, x));
 		let user = ensure_signed(T::EnclaveOrigin::successful_origin()).unwrap();
 		let asset = AssetId::decode(&mut &((x  + 1) as u128).to_be_bytes()[..]).unwrap();
-		let amount: T::Balance = BalanceOf::decode(&mut &(x as u128).to_be_bytes()[..]).unwrap();
+		let amount  = BalanceOf::<T>::decode(&mut &(x as u128).to_be_bytes()[..]).unwrap();
 	}: _(origin, asset, amount)
 	verify {
 		assert_last_event::<T>(Event::DepositSuccessful {
@@ -174,13 +174,13 @@ benchmarks! {
 		let main = ensure_signed(T::EnclaveOrigin::successful_origin()).unwrap();
 		let asset = AssetId::decode(&mut &(x as u128).to_be_bytes()[..]).unwrap();
 		let amount = BalanceOf::<T>::decode(&mut &(x as u128).to_be_bytes()[..]).unwrap();
-		let mut withdrawals = BoundedVec::with_bounded_capacity(1);
-		withdrawals.try_push(Withdrawal {
-				amount: x,
+		let mut withdrawals = Vec::with_capacity(1);
+		withdrawals.push(Withdrawal {
+				amount: BalanceOf::<T>::decode(&mut (x as u128).to_be_bytes().to_vec().as_ref()),
 				asset,
 				main_account: main
-			}).unwrap();
-		//let mut withdrawals = frame_support::BoundedVec::try_from(&v_withdrawals.as_ref()).unwrap();
+			});
+		let mut withdrawals = frame_support::BoundedVec::try_from(withdrawals).unwrap();
 		<Withdrawals<T>>::insert(x, withdrawals);
 	}: _(origin, x, x)
 	verify {
