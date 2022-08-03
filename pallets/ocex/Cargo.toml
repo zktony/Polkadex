@@ -24,12 +24,12 @@ sp-io = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://
 sp-runtime = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
 sp-std = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
 polkadex-primitives = { default-features = false, branch = "polkadot-v0.9.19", git = "https://github.com/Polkadex-Substrate/polkadex-primitives.git" }
-#polkadex-primitives = { default-features = false, path = "../../../polkadex-primitives" }
 syn = "=1.0.96" # TODO: Remove this as soon as frame-support-procedural-tools becomes compilable with latest syn version
 sp-core = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git', default-features = false }
 pallet-timestamp = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate' }
 ias-verify = { version = "0.1.5", default-features = false, branch = "polkadot-v0.9.19", git = "https://github.com/Polkadex-Substrate/pallets" }
 test-utils = { git = "https://github.com/Polkadex-Substrate/pallets.git", branch = "polkadot-v0.9.19", default-features = false, optional = true }
+getrandom = { version = "0.2.7", features = ["js"], optional = true }
 
 [dev-dependencies]
 pallet-balances = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
@@ -53,6 +53,7 @@ std = [
 ]
 runtime-benchmarks = [
     "frame-benchmarking/runtime-benchmarks",
+    "getrandom",
     "test-utils/std"
 ]
 try-runtime = ["frame-support/try-runtime"]

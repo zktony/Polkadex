@@ -215,6 +215,7 @@ runtime-benchmarks = [
     "hex-literal",
     "frame-election-provider-support/runtime-benchmarks",
     "pdex-migration/runtime-benchmarks",
+    "sp-npos-elections/bench",
     "pallet-ocex-lmp/runtime-benchmarks"
 ]
 

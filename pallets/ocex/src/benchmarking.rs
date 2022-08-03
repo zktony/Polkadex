@@ -41,7 +41,7 @@ benchmarks! {
 		let origin = RawOrigin::Signed(account("caller", b, b));
 		let account = T::AccountId::decode(&mut &[b as u8; 32].to_vec()[..]).unwrap();
 		let main = ensure_signed(T::EnclaveOrigin::successful_origin()).unwrap();
-	}: _(origin.clone(), account.into())
+	}: _(origin.clone(), account.clone().into())
 	verify {
 		assert_last_event::<T>(Event::MainAccountRegistered {
 			main,
@@ -176,11 +176,11 @@ benchmarks! {
 		let amount = BalanceOf::<T>::decode(&mut &(x as u128).to_be_bytes()[..]).unwrap();
 		let mut withdrawals = Vec::with_capacity(1);
 		withdrawals.push(Withdrawal {
-				amount: BalanceOf::<T>::decode(&mut (x as u128).to_be_bytes().to_vec().as_ref()),
+				amount: BalanceOf::<T>::decode(&mut (x as u128).to_be_bytes().to_vec().as_ref()).unwrap(),
 				asset,
-				main_account: main
+				main_account: main.clone()
 			});
-		let mut withdrawals = frame_support::BoundedVec::try_from(withdrawals).unwrap();
+		let mut withdrawals: BoundedVec<Withdrawal<T::AccountId, BalanceOf<T>>, WithdrawalLimit> = frame_support::BoundedVec::try_from(withdrawals).unwrap();
 		<Withdrawals<T>>::insert(x, withdrawals);
 	}: _(origin, x, x)
 	verify {
@@ -198,7 +198,7 @@ benchmarks! {
 		use test_utils::{get_signer, ias::{consts::*, ias::*}};
 		timestamp::Pallet::<T>::set_timestamp(TEST4_SETUP.timestamp.checked_into().unwrap());
 		let signer: T::AccountId = T::AccountId::decode(&mut &TEST4_SETUP.signer_pub[..]).unwrap();
-	}: _(RawOrigin::Signed(signer), TEST4_SETUP.cert.to_vec())
+	}: _(RawOrigin::Signed(signer.clone()), TEST4_SETUP.cert.to_vec())
 	verify {
 		assert_last_event::<T>(Event::EnclaveRegistered(signer).into());
 	}
