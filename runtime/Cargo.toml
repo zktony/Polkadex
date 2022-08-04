@@ -63,7 +63,7 @@ sp-session = { default-features = false, git = "https://github.com/paritytech/su
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 sp-transaction-pool = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 sp-version = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false, features = ["disable_panic_handler", "disable_oom"] }
 
 
 #added
@@ -113,7 +113,6 @@ substrate-wasm-builder = { git = "https://github.com/paritytech/substrate", bran
 [dev-dependencies]
 sp-core = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false }
 
-
 [features]
 default = ["std"]
 std = [
@@ -155,6 +154,10 @@ std = [
     "pallet-membership/std",
     "pallet-scheduler/std",
     "pallet-election-provider-multi-phase/std",
+    "pallet-conviction-voting/std",
+    "pallet-referenda/std",
+    "pallet-society/std",
+    "sp-io/std",
     "sp-api/std",
     "sp-block-builder/std",
     "sp-consensus-babe/std",
@@ -169,52 +172,22 @@ std = [
     "sp-version/std",
     "sp-npos-elections/std",
     "pallet-assets/std",
-    "pallet-referenda/std",
-    "pallet-conviction-voting/std",
     "orml-vesting/std",
     "polkadex-primitives/std",
     "pdex-migration/std",
     "polkadex-ido/std",
+    "pallet-randomness-collective-flip/std",
     "frame-try-runtime/std",
 ]
 
 runtime-benchmarks = [
-    "frame-support/runtime-benchmarks",
-    "frame-system/runtime-benchmarks",
-    "pallet-election-provider-multi-phase/runtime-benchmarks",
-    "sp-runtime/runtime-benchmarks",
-    "sp-npos-elections/std",
-    "pallet-babe/runtime-benchmarks",
-    "pallet-balances/runtime-benchmarks",
-    "pallet-bounties/runtime-benchmarks",
+    "hex-literal",
+    "frame-benchmarking",
+    "frame-system-benchmarking",
     "pallet-collective/runtime-benchmarks",
-    "pallet-elections-phragmen/runtime-benchmarks",
-    "pallet-grandpa/runtime-benchmarks",
-    "pallet-identity/runtime-benchmarks",
-    "pallet-im-online/runtime-benchmarks",
-    "pallet-indices/runtime-benchmarks",
-    "pallet-child-bounties/runtime-benchmarks",
-    "pallet-preimage/runtime-benchmarks",
-    "pallet-bags-list/runtime-benchmarks",
-    "pallet-membership/runtime-benchmarks",
-    "pallet-multisig/runtime-benchmarks",
-    "pallet-proxy/runtime-benchmarks",
-    "pallet-scheduler/runtime-benchmarks",
-    "pallet-staking/runtime-benchmarks",
-    "pallet-society/runtime-benchmarks",
-    "pallet-timestamp/runtime-benchmarks",
-    "pallet-tips/runtime-benchmarks",
-    "pallet-treasury/runtime-benchmarks",
-    "pallet-democracy/runtime-benchmarks",
-    "pallet-utility/runtime-benchmarks",
     "pallet-conviction-voting/runtime-benchmarks",
     "pallet-referenda/runtime-benchmarks",
-    "orml-vesting/runtime-benchmarks",
-    "frame-election-provider-support/runtime-benchmarks",
-    "pdex-migration/runtime-benchmarks",
-    "pallet-assets/runtime-benchmarks",
-    "pallet-balances/runtime-benchmarks",
-    "test-token-provider/runtime-benchmarks",
+    "pallet-society/runtime-benchmarks",
     "pallet-ocex-lmp/runtime-benchmarks"
 ]
 
@@ -224,6 +197,9 @@ try-runtime = [
     "frame-support/try-runtime",
     "frame-system/try-runtime",
     "pallet-election-provider-multi-phase/try-runtime",
+    "pallet-transaction-payment/try-runtime",
+    "pallet-recovery/try-runtime",
+    "pallet-authority-discovery/try-runtime",
     "pallet-babe/try-runtime",
     "pallet-balances/try-runtime",
     "pallet-bounties/try-runtime",
@@ -240,7 +216,6 @@ try-runtime = [
     "pallet-multisig/try-runtime",
     "pallet-proxy/try-runtime",
     "pallet-scheduler/try-runtime",
-    "pallet-society/try-runtime",
     "pallet-staking/try-runtime",
     "pallet-timestamp/try-runtime",
     "pallet-tips/try-runtime",
@@ -250,5 +225,9 @@ try-runtime = [
     "orml-vesting/try-runtime",
     "pdex-migration/try-runtime",
     "test-token-provider/try-runtime",
-    "pallet-ocex-lmp/try-runtime"
+    "pallet-ocex-lmp/try-runtime",
+    "pallet-sudo/try-runtime",
+    "pallet-randomness-collective-flip/try-runtime",
+    "pallet-assets/try-runtime",
+    "pallet-session/try-runtime"
 ]
