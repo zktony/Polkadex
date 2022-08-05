@@ -31,13 +31,22 @@ ias-verify = { version = "0.1.5", default-features = false, branch = "polkadot-v
 test-utils = { git = "https://github.com/Polkadex-Substrate/pallets.git", branch = "polkadot-v0.9.19", default-features = false, optional = true }
 getrandom = { version = "0.2.7", features = ["js"], optional = true }
 
+[dev-dependencies]
+pallet-balances = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
+pallet-assets = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
+pallet-timestamp = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
+sp-application-crypto = {default-features = false, branch="polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate'}
+sp-keystore = {default-features = false, branch = "polkadot-v0.9.19",git = 'https://github.com/paritytech/substrate' }
+ckb-merkle-mountain-range = "0.4.0"
+anyhow = "1.0.56"
+
 [features]
 default = ["std"]
+
 std = [
     "codec/std",
     "log/std",
     "scale-info/std",
-    "frame-benchmarking/std",
     "frame-support/std",
     "frame-system/std",
     "sp-io/std",
@@ -48,6 +57,7 @@ std = [
     "pallet-timestamp/std",
     "test-utils/std"
 ]
+
 runtime-benchmarks = [
     "frame-benchmarking",
     "frame-support/runtime-benchmarks",
