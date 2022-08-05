@@ -63,7 +63,7 @@ sp-session = { default-features = false, git = "https://github.com/paritytech/su
 sp-std = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 sp-transaction-pool = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
 sp-version = { default-features = false, git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19" }
-sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false, features = ["disable_panic_handler", "disable_oom"] }
+sp-io = { git = "https://github.com/paritytech/substrate", branch = "polkadot-v0.9.19", default-features = false } #, features = ["disable_panic_handler", "disable_oom"] }
 
 
 #added
@@ -181,6 +181,10 @@ std = [
 ]
 
 runtime-benchmarks = [
+    "sp-io/disable_panic_handler",
+    "sp-io/disable_oom",
+    "sp-io/disable_allocator",
+    "sp-runtime/runtime-benchmarks",
     "hex-literal",
     "frame-benchmarking",
     "frame-system-benchmarking",

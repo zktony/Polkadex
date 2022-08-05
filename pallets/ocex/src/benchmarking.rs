@@ -153,9 +153,8 @@ benchmarks! {
 			withdrawals: Default::default(),
 			fees: Default::default()
 		};
-		let enclave = T::AccountId::decode(&mut &(x as u128).to_be_bytes()[..]).unwrap();
 		let signature = T::Signature::decode(&mut &[x as u8; 64][..]).unwrap();
-	}: _(origin, snapshot, enclave, signature)
+	}: _(origin, snapshot, signature)
 	verify {
 		assert!(true);
 	}
@@ -203,6 +202,5 @@ benchmarks! {
 		assert_last_event::<T>(Event::EnclaveRegistered(signer).into());
 	}
 
-	// TODO: implement
-	//impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::Test);
+	impl_benchmark_test_suite!(Pallet, crate::tests::new_test_ext(), crate::tests::Test);
 }
