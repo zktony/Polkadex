@@ -41,21 +41,6 @@ impl BenchmarkExtrinsicBuilder {
 	}
 }
 
-impl frame_benchmarking_cli::ExtrinsicBuilder for BenchmarkExtrinsicBuilder {
-	fn remark(&self, nonce: u32) -> std::result::Result<OpaqueExtrinsic, &'static str> {
-		let acc = Sr25519Keyring::Bob.pair();
-		let extrinsic: OpaqueExtrinsic = create_extrinsic(
-			self.client.as_ref(),
-			acc,
-			SystemCall::remark { remark: vec![] },
-			Some(nonce),
-		)
-		.into();
-
-		Ok(extrinsic)
-	}
-}
-
 /// Generates inherent data for the `benchmark overhead` command.
 pub fn inherent_benchmark_data() -> Result<InherentData> {
 	let mut inherent_data = InherentData::new();

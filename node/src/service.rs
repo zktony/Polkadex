@@ -28,9 +28,7 @@ use polkadex_primitives::Block;
 use sc_client_api::{BlockBackend, ExecutorProvider};
 use sc_executor::NativeElseWasmExecutor;
 use sc_network::{Event, NetworkService};
-use sc_service::{
-	config::Configuration, error::Error as ServiceError, RpcExtensionBuilder, TaskManager,
-};
+use sc_service::{config::Configuration, error::Error as ServiceError, RpcHandlers, TaskManager};
 use sp_runtime::traits::Block as BlockT;
 use std::sync::Arc;
 
@@ -122,25 +120,31 @@ pub fn create_extrinsic(
 	)
 }
 
-type PartialComponents = sc_service::PartialComponents<
-	FullClient,
-	FullBackend,
-	FullSelectChain,
-	sc_consensus::DefaultImportQueue<Block, FullClient>,
-	sc_transaction_pool::FullPool<Block, FullClient>,
-	(
-		Box<dyn RpcExtensionBuilder<Output = node_rpc::IoHandler> + Send>,
+pub fn new_partial(
+	config: &Configuration,
+) -> Result<
+	sc_service::PartialComponents<
+		FullClient,
+		FullBackend,
+		FullSelectChain,
+		sc_consensus::DefaultImportQueue<Block, FullClient>,
+		sc_transaction_pool::FullPool<Block, FullClient>,
 		(
-			sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
-			grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
-			sc_consensus_babe::BabeLink<Block>,
+			impl Fn(
+				node_rpc::DenyUnsafe,
+				sc_rpc::SubscriptionTaskExecutor,
+			) -> Result<jsonrpsee::RpcModule<()>, sc_service::Error>,
+			(
+				sc_consensus_babe::BabeBlockImport<Block, FullClient, FullGrandpaBlockImport>,
+				grandpa::LinkHalf<Block, FullClient, FullSelectChain>,
+				sc_consensus_babe::BabeLink<Block>,
+			),
+			grandpa::SharedVoterState,
+			Option<Telemetry>,
 		),
-		grandpa::SharedVoterState,
-		Option<Telemetry>,
-	),
->;
-
-pub fn new_partial(config: &Configuration) -> Result<PartialComponents, ServiceError> {
+	>,
+	ServiceError,
+> {
 	let telemetry = config
 		.telemetry_endpoints
 		.clone()
@@ -247,6 +251,7 @@ pub fn new_partial(config: &Configuration) -> Result<PartialComponents, ServiceE
 		let keystore = keystore_container.sync_keystore();
 		let chain_spec = config.chain_spec.cloned_box();
 
+		let rpc_backend = backend.clone();
 		let rpc_extensions_builder = move |deny_unsafe, subscription_executor| {
 			let deps = node_rpc::FullDeps {
 				client: client.clone(),
@@ -374,7 +379,7 @@ pub fn new_full_base(
 		client: client.clone(),
 		keystore: keystore_container.sync_keystore(),
 		network: network.clone(),
-		rpc_extensions_builder,
+		rpc_builder: Box::new(rpc_extensions_builder),
 		transaction_pool: transaction_pool.clone(),
 		task_manager: &mut task_manager,
 		system_rpc_tx,
@@ -530,11 +535,11 @@ pub fn new_full(config: Configuration) -> Result<TaskManager, ServiceError> {
 mod tests {
 	use crate::service::{new_full_base, NewFullBase};
 	use codec::Encode;
-	use polkadex_primitives::{Block, DigestItem, Signature};
 	use node_polkadex_runtime::{
 		constants::{currency::CENTS, time::SLOT_DURATION},
 		Address, BalancesCall, Call, UncheckedExtrinsic,
 	};
+	use polkadex_primitives::{Block, DigestItem, Signature};
 	use sc_client_api::BlockBackend;
 	use sc_consensus::{BlockImport, BlockImportParams, ForkChoiceStrategy};
 	use sc_consensus_babe::{BabeIntermediate, CompatibleDigestItem, INTERMEDIATE_KEY};
@@ -547,7 +552,13 @@ mod tests {
 	use sp_inherents::InherentDataProvider;
 	use sp_keyring::AccountKeyring;
 	use sp_keystore::{SyncCryptoStore, SyncCryptoStorePtr};
-	use sp_runtime::{generic::{BlockId, Digest, SignedPayload}, key_types::BABE, traits::{Block as BlockT, Header as HeaderT, IdentifyAccount, Verify}, RuntimeAppPublic, generic};
+	use sp_runtime::{
+		generic,
+		generic::{BlockId, Digest, SignedPayload},
+		key_types::BABE,
+		traits::{Block as BlockT, Header as HeaderT, IdentifyAccount, Verify},
+		RuntimeAppPublic,
+	};
 	use sp_timestamp;
 	use std::{borrow::Cow, sync::Arc};
 
@@ -646,8 +657,8 @@ mod tests {
 						.unwrap();
 
 					if let Some(babe_pre_digest) =
-					sc_consensus_babe::authorship::claim_slot(slot.into(), &epoch, &keystore)
-						.map(|(digest, _)| digest)
+						sc_consensus_babe::authorship::claim_slot(slot.into(), &epoch, &keystore)
+							.map(|(digest, _)| digest)
 					{
 						break (babe_pre_digest, epoch_descriptor)
 					}
@@ -673,8 +684,8 @@ mod tests {
 						.propose(inherent_data, digest, std::time::Duration::from_secs(1), None)
 						.await
 				})
-					.expect("Error making test block")
-					.block;
+				.expect("Error making test block")
+				.block;
 
 				let (new_header, new_body) = new_block.deconstruct();
 				let pre_hash = new_header.hash();
@@ -687,10 +698,10 @@ mod tests {
 					&alice.to_public_crypto_pair(),
 					&to_sign,
 				)
-					.unwrap()
-					.unwrap()
-					.try_into()
-					.unwrap();
+				.unwrap()
+				.unwrap()
+				.try_into()
+				.unwrap();
 				let item = <DigestItem as CompatibleDigestItem>::babe_seal(signature);
 				slot += 1;
 
@@ -727,15 +738,19 @@ mod tests {
 					frame_system::CheckSpecVersion::<node_polkadex_runtime::Runtime>::new(),
 					frame_system::CheckTxVersion::<node_polkadex_runtime::Runtime>::new(),
 					frame_system::CheckGenesis::<node_polkadex_runtime::Runtime>::new(),
-					frame_system::CheckMortality::<node_polkadex_runtime::Runtime>::from(generic::Era::Immortal),
+					frame_system::CheckMortality::<node_polkadex_runtime::Runtime>::from(
+						generic::Era::Immortal,
+					),
 					frame_system::CheckNonce::<node_polkadex_runtime::Runtime>::from(index),
 					frame_system::CheckWeight::<node_polkadex_runtime::Runtime>::new(),
-					pallet_transaction_payment::ChargeTransactionPayment::<node_polkadex_runtime::Runtime>::from(tip),
+					pallet_transaction_payment::ChargeTransactionPayment::<
+						node_polkadex_runtime::Runtime,
+					>::from(tip),
 				);
 				let raw_payload = SignedPayload::from_raw(
 					function,
 					extra,
-					(spec_version, transaction_version, genesis_hash, genesis_hash, (), (),()),
+					(spec_version, transaction_version, genesis_hash, genesis_hash, (), (), ()),
 				);
 				let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
 				let (function, extra, _) = raw_payload.deconstruct();

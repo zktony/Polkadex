@@ -15,28 +15,28 @@ targets = ["x86_64-unknown-linux-gnu"]
 [dependencies]
 codec = { package = "parity-scale-codec", version = "3.0.0", default-features = false }
 log = { version = "0.4.14", default-features = false }
-scale-info = { version = "2.0.1", default-features = false, features = ["derive"] }
+scale-info = { version = "2.1.2", default-features = false, features = ["derive"] }
 
-frame-benchmarking = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git', optional = true }
-frame-support = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
-frame-system = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
-sp-io = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git', optional = true }
-sp-runtime = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
-sp-std = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
-polkadex-primitives = { default-features = false, branch = "polkadot-v0.9.19", git = "https://github.com/Polkadex-Substrate/polkadex-primitives.git" }
-syn = "=1.0.96" # TODO: Remove this as soon as frame-support-procedural-tools becomes compilable with latest syn version
-sp-core = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git', default-features = false }
-pallet-timestamp = { default-features = false, branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate' }
-ias-verify = { version = "0.1.5", default-features = false, branch = "polkadot-v0.9.19", git = "https://github.com/Polkadex-Substrate/pallets" }
-test-utils = { git = "https://github.com/Polkadex-Substrate/pallets.git", branch = "polkadot-v0.9.19", default-features = false, optional = true }
+frame-benchmarking = { default-features = false, branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git', optional = true }
+frame-support = { default-features = false, branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git' }
+frame-system = { default-features = false, branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git' }
+sp-io = { default-features = false, branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git', optional = true }
+sp-runtime = { default-features = false, branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git' }
+sp-std = { default-features = false, branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git' }
+polkadex-primitives = { default-features = false, branch = "polkadot-v0.9.27", git = "https://github.com/Polkadex-Substrate/polkadex-primitives.git" }
+#syn = "=1.0.96" # TODO: Remove this as soon as frame-support-procedural-tools becomes compilable with latest syn version
+sp-core = { branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git', default-features = false }
+pallet-timestamp = { default-features = false, branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate' }
+ias-verify = { version = "0.1.5", default-features = false, branch = "polkadot-v0.9.27", git = "https://github.com/Polkadex-Substrate/pallets" }
+test-utils = { git = "https://github.com/Polkadex-Substrate/pallets.git", branch = "polkadot-v0.9.27", default-features = false, optional = true }
 getrandom = { version = "0.2.7", features = ["js"], optional = true }
 
 [dev-dependencies]
-pallet-balances = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
-pallet-assets = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
-pallet-timestamp = { branch = "polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate.git' }
-sp-application-crypto = {default-features = false, branch="polkadot-v0.9.19", git = 'https://github.com/paritytech/substrate'}
-sp-keystore = {default-features = false, branch = "polkadot-v0.9.19",git = 'https://github.com/paritytech/substrate' }
+pallet-balances = { branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git' }
+pallet-assets = { branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git' }
+pallet-timestamp = { branch = "polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate.git' }
+sp-application-crypto = {default-features = false, branch="polkadot-v0.9.27", git = 'https://github.com/paritytech/substrate'}
+sp-keystore = {default-features = false, branch = "polkadot-v0.9.27",git = 'https://github.com/paritytech/substrate' }
 ckb-merkle-mountain-range = "0.4.0"
 anyhow = "1.0.56"
 

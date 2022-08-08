@@ -12,8 +12,8 @@
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 // GNU General Public License for more details.
-
-use frame_benchmarking_cli::BenchmarkCmd;
+use super::benchmarking::{inherent_benchmark_data, RemarkBuilder, TransferKeepAliveBuilder};
+use frame_benchmarking_cli::{BenchmarkCmd, ExtrinsicFactory, SUBSTRATE_REFERENCE_HARDWARE};
 use std::sync::Arc;
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
@@ -24,10 +24,10 @@ use crate::{
 	service::{new_partial, FullClient},
 };
 use node_executor::ExecutorDispatch;
-use node_polkadex_runtime::Block;
-use polkadex_node::command_helper::{inherent_benchmark_data, BenchmarkExtrinsicBuilder};
+use node_polkadex_runtime::{Block, ExistentialDeposit};
 use sc_cli::{ChainSpec, Result, RuntimeVersion, SubstrateCli};
 use sc_service::PartialComponents;
+use sp_keyring::Sr25519Keyring;
 // use node_polkadex_runtime::RuntimeApi;
 
 impl SubstrateCli for Cli {
@@ -122,10 +122,26 @@ pub fn run() -> Result<()> {
 						cmd.run(config, client, db, storage)
 					},
 					BenchmarkCmd::Overhead(cmd) => {
-						let ext_builder = BenchmarkExtrinsicBuilder::new(client.clone());
+						let ext_builder = RemarkBuilder::new(client.clone());
 
-						cmd.run(config, client, inherent_benchmark_data()?, Arc::new(ext_builder))
+						cmd.run(config, client, inherent_benchmark_data()?, &ext_builder)
 					},
+					BenchmarkCmd::Extrinsic(cmd) => {
+						let PartialComponents { client, .. } = service::new_partial(&config)?;
+						// Register the *Remark* and *TKA* builders.
+						let ext_factory = ExtrinsicFactory(vec![
+							Box::new(RemarkBuilder::new(client.clone())),
+							Box::new(TransferKeepAliveBuilder::new(
+								client.clone(),
+								Sr25519Keyring::Alice.to_account_id(),
+								ExistentialDeposit::get(),
+							)),
+						]);
+
+						cmd.run(client, inherent_benchmark_data()?, &ext_factory)
+					},
+					BenchmarkCmd::Machine(cmd) =>
+						cmd.run(&config, SUBSTRATE_REFERENCE_HARDWARE.clone()),
 				}
 			})
 		},
