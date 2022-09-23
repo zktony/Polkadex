@@ -30,243 +30,243 @@ use crate::{error::Error, keystore::OcexKeystore};
 #[allow(missing_docs)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, strum::Display, strum::EnumIter)]
 pub(crate) enum Keyring {
-    Alice,
-    Bob,
-    Charlie,
-    Dave,
-    Eve,
-    Ferdie,
-    One,
-    Two,
+	Alice,
+	Bob,
+	Charlie,
+	Dave,
+	Eve,
+	Ferdie,
+	One,
+	Two,
 }
 
 impl Keyring {
-    /// Sign `msg`.
-    pub fn sign(self, msg: &[u8]) -> crypto::Signature {
-        let msg = keccak_256(msg);
-        sr25519::Pair::from(self).sign(&msg).into()
-    }
+	/// Sign `msg`.
+	pub fn sign(self, msg: &[u8]) -> crypto::Signature {
+		let msg = keccak_256(msg);
+		sr25519::Pair::from(self).sign(&msg).into()
+	}
 
-    /// Return key pair.
-    pub fn pair(self) -> crypto::Pair {
-        sr25519::Pair::from_string(self.to_seed().as_str(), None).unwrap().into()
-    }
+	/// Return key pair.
+	pub fn pair(self) -> crypto::Pair {
+		sr25519::Pair::from_string(self.to_seed().as_str(), None).unwrap().into()
+	}
 
-    /// Return public key.
-    pub fn public(self) -> crypto::Public {
-        self.pair().public()
-    }
+	/// Return public key.
+	pub fn public(self) -> crypto::Public {
+		self.pair().public()
+	}
 
-    /// Return seed string.
-    pub fn to_seed(self) -> String {
-        format!("//{}", self)
-    }
+	/// Return seed string.
+	pub fn to_seed(self) -> String {
+		format!("//{}", self)
+	}
 }
 
 impl From<Keyring> for crypto::Pair {
-    fn from(k: Keyring) -> Self {
-        k.pair()
-    }
+	fn from(k: Keyring) -> Self {
+		k.pair()
+	}
 }
 
 impl From<Keyring> for sr25519::Pair {
-    fn from(k: Keyring) -> Self {
-        k.pair().into()
-    }
+	fn from(k: Keyring) -> Self {
+		k.pair().into()
+	}
 }
 
 impl From<Keyring> for ed25519::Pair {
-    fn from(k: Keyring) -> Self {
-        k.into()
-    }
+	fn from(k: Keyring) -> Self {
+		k.into()
+	}
 }
 
 fn keystore() -> SyncCryptoStorePtr {
-    Arc::new(LocalKeystore::in_memory())
+	Arc::new(LocalKeystore::in_memory())
 }
 
 #[test]
 fn verify_should_work() {
-    let msg = keccak_256(b"I am Alice!");
-    let sig = Keyring::Alice.sign(b"I am Alice!");
+	let msg = keccak_256(b"I am Alice!");
+	let sig = Keyring::Alice.sign(b"I am Alice!");
 
-    assert!(sr25519::Pair::verify(&sig.clone().into(), &msg, &Keyring::Alice.public().into(),));
+	assert!(sr25519::Pair::verify(&sig.clone().into(), &msg, &Keyring::Alice.public().into(),));
 
-    // different public key -> fail
-    assert!(!sr25519::Pair::verify(&sig.clone().into(), &msg, &Keyring::Bob.public().into(),));
+	// different public key -> fail
+	assert!(!sr25519::Pair::verify(&sig.clone().into(), &msg, &Keyring::Bob.public().into(),));
 
-    let msg = keccak_256(b"I am not Alice!");
+	let msg = keccak_256(b"I am not Alice!");
 
-    // different msg -> fail
-    assert!(!sr25519::Pair::verify(&sig.into(), &msg, &Keyring::Alice.public().into()));
+	// different msg -> fail
+	assert!(!sr25519::Pair::verify(&sig.into(), &msg, &Keyring::Alice.public().into()));
 }
 
 #[test]
 fn pair_works() {
-    let want = crypto::Pair::from_string("//Alice", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::Alice.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//Alice", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::Alice.pair().to_raw_vec();
+	assert_eq!(want, got);
 
-    let want = crypto::Pair::from_string("//Bob", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::Bob.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//Bob", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::Bob.pair().to_raw_vec();
+	assert_eq!(want, got);
 
-    let want = crypto::Pair::from_string("//Charlie", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::Charlie.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//Charlie", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::Charlie.pair().to_raw_vec();
+	assert_eq!(want, got);
 
-    let want = crypto::Pair::from_string("//Dave", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::Dave.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//Dave", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::Dave.pair().to_raw_vec();
+	assert_eq!(want, got);
 
-    let want = crypto::Pair::from_string("//Eve", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::Eve.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//Eve", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::Eve.pair().to_raw_vec();
+	assert_eq!(want, got);
 
-    let want = crypto::Pair::from_string("//Ferdie", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::Ferdie.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//Ferdie", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::Ferdie.pair().to_raw_vec();
+	assert_eq!(want, got);
 
-    let want = crypto::Pair::from_string("//One", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::One.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//One", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::One.pair().to_raw_vec();
+	assert_eq!(want, got);
 
-    let want = crypto::Pair::from_string("//Two", None).expect("Pair failed").to_raw_vec();
-    let got = Keyring::Two.pair().to_raw_vec();
-    assert_eq!(want, got);
+	let want = crypto::Pair::from_string("//Two", None).expect("Pair failed").to_raw_vec();
+	let got = Keyring::Two.pair().to_raw_vec();
+	assert_eq!(want, got);
 }
 
 #[test]
 fn authority_id_works() {
-    let store = keystore();
+	let store = keystore();
 
-    let alice: crypto::Public =
-        SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Alice.to_seed()))
-            .ok()
-            .unwrap()
-            .into();
+	let alice: crypto::Public =
+		SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Alice.to_seed()))
+			.ok()
+			.unwrap()
+			.into();
 
-    let bob = Keyring::Bob.public();
-    let charlie = Keyring::Charlie.public();
+	let bob = Keyring::Bob.public();
+	let charlie = Keyring::Charlie.public();
 
-    let store: OcexKeystore = Some(store).into();
+	let store: OcexKeystore = Some(store).into();
 
-    let mut keys = vec![bob, charlie];
+	let mut keys = vec![bob, charlie];
 
-    let id = store.authority_id(keys.as_slice());
-    assert!(id.is_none());
+	let id = store.authority_id(keys.as_slice());
+	assert!(id.is_none());
 
-    keys.push(alice.clone());
+	keys.push(alice.clone());
 
-    let id = store.authority_id(keys.as_slice()).unwrap();
-    assert_eq!(id, alice);
+	let id = store.authority_id(keys.as_slice()).unwrap();
+	assert_eq!(id, alice);
 }
 
 // TODO: This test doesn't work, fix it.
 fn sign_works() {
-    let store = keystore();
+	let store = keystore();
 
-    let alice: crypto::Public =
-        SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Alice.to_seed()))
-            .ok()
-            .unwrap()
-            .into();
+	let alice: crypto::Public =
+		SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Alice.to_seed()))
+			.ok()
+			.unwrap()
+			.into();
 
-    let store: OcexKeystore = Some(store).into();
+	let store: OcexKeystore = Some(store).into();
 
-    let msg = b"are you involved or commited?";
+	let msg = b"are you involved or commited?";
 
-    let sig1 = store.sign(&alice, msg).unwrap();
-    let sig2 = Keyring::Alice.sign(msg);
+	let sig1 = store.sign(&alice, msg).unwrap();
+	let sig2 = Keyring::Alice.sign(msg);
 
-    assert_eq!(sig1, sig2);
+	assert_eq!(sig1, sig2);
 }
 
 #[test]
 fn sign_error() {
-    let store = keystore();
+	let store = keystore();
 
-    let _ = SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Bob.to_seed()))
-        .ok()
-        .unwrap();
+	let _ = SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Bob.to_seed()))
+		.ok()
+		.unwrap();
 
-    let store: OcexKeystore = Some(store).into();
+	let store: OcexKeystore = Some(store).into();
 
-    let alice = Keyring::Alice.public();
+	let alice = Keyring::Alice.public();
 
-    let msg = b"are you involved or commited?";
-    let sig = store.sign(&alice, msg).err().unwrap();
-    let err = Error::Signature("sign_with() failed".to_string());
+	let msg = b"are you involved or commited?";
+	let sig = store.sign(&alice, msg).err().unwrap();
+	let err = Error::Signature("sign_with() failed".to_string());
 
-    assert_eq!(sig, err);
+	assert_eq!(sig, err);
 }
 
 #[test]
 fn sign_no_keystore() {
-    let store: OcexKeystore = None.into();
+	let store: OcexKeystore = None.into();
 
-    let alice = Keyring::Alice.public();
-    let msg = b"are you involved or commited";
+	let alice = Keyring::Alice.public();
+	let msg = b"are you involved or commited";
 
-    let sig = store.sign(&alice, msg).err().unwrap();
-    let err = Error::Keystore("no Keystore".to_string());
-    assert_eq!(sig, err);
+	let sig = store.sign(&alice, msg).err().unwrap();
+	let err = Error::Keystore("no Keystore".to_string());
+	assert_eq!(sig, err);
 }
 
 #[test]
 fn verify_works() {
-    let store = keystore();
+	let store = keystore();
 
-    let alice: crypto::Public =
-        SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Alice.to_seed()))
-            .ok()
-            .unwrap()
-            .into();
+	let alice: crypto::Public =
+		SyncCryptoStore::sr25519_generate_new(&*store, KEY_TYPE, Some(&Keyring::Alice.to_seed()))
+			.ok()
+			.unwrap()
+			.into();
 
-    let store: OcexKeystore = Some(store).into();
+	let store: OcexKeystore = Some(store).into();
 
-    // `msg` and `sig` match
-    let msg = b"are you involved or commited?";
-    let sig = store.sign(&alice, msg).unwrap();
-    assert!(OcexKeystore::verify(&alice, &sig, msg));
+	// `msg` and `sig` match
+	let msg = b"are you involved or commited?";
+	let sig = store.sign(&alice, msg).unwrap();
+	assert!(OcexKeystore::verify(&alice, &sig, msg));
 
-    // `msg and `sig` don't match
-    let msg = b"you are just involved";
-    assert!(!OcexKeystore::verify(&alice, &sig, msg));
+	// `msg and `sig` don't match
+	let msg = b"you are just involved";
+	assert!(!OcexKeystore::verify(&alice, &sig, msg));
 }
 
 // Note that we use keys with and without a seed for this test.
 #[test]
 fn public_keys_works() {
-    const TEST_TYPE: sp_application_crypto::KeyTypeId = sp_application_crypto::KeyTypeId(*b"test");
+	const TEST_TYPE: sp_application_crypto::KeyTypeId = sp_application_crypto::KeyTypeId(*b"test");
 
-    let store = keystore();
+	let store = keystore();
 
-    let add_key = |key_type, seed: Option<&str>| {
-        SyncCryptoStore::sr25519_generate_new(&*store, key_type, seed).unwrap()
-    };
+	let add_key = |key_type, seed: Option<&str>| {
+		SyncCryptoStore::sr25519_generate_new(&*store, key_type, seed).unwrap()
+	};
 
-    // test keys
-    let _ = add_key(TEST_TYPE, Some(Keyring::Alice.to_seed().as_str()));
-    let _ = add_key(TEST_TYPE, Some(Keyring::Bob.to_seed().as_str()));
+	// test keys
+	let _ = add_key(TEST_TYPE, Some(Keyring::Alice.to_seed().as_str()));
+	let _ = add_key(TEST_TYPE, Some(Keyring::Bob.to_seed().as_str()));
 
-    let _ = add_key(TEST_TYPE, None);
-    let _ = add_key(TEST_TYPE, None);
+	let _ = add_key(TEST_TYPE, None);
+	let _ = add_key(TEST_TYPE, None);
 
-    // BEEFY keys
-    let _ = add_key(KEY_TYPE, Some(Keyring::Dave.to_seed().as_str()));
-    let _ = add_key(KEY_TYPE, Some(Keyring::Eve.to_seed().as_str()));
+	// BEEFY keys
+	let _ = add_key(KEY_TYPE, Some(Keyring::Dave.to_seed().as_str()));
+	let _ = add_key(KEY_TYPE, Some(Keyring::Eve.to_seed().as_str()));
 
-    let key1: crypto::Public = add_key(KEY_TYPE, None).into();
-    let key2: crypto::Public = add_key(KEY_TYPE, None).into();
+	let key1: crypto::Public = add_key(KEY_TYPE, None).into();
+	let key2: crypto::Public = add_key(KEY_TYPE, None).into();
 
-    let store: OcexKeystore = Some(store).into();
+	let store: OcexKeystore = Some(store).into();
 
-    let keys = store.public_keys().ok().unwrap();
+	let keys = store.public_keys().ok().unwrap();
 
-    assert!(keys.len() == 4);
-    assert!(keys.contains(&Keyring::Dave.public()));
-    assert!(keys.contains(&Keyring::Eve.public()));
-    assert!(keys.contains(&key1));
-    assert!(keys.contains(&key2));
+	assert!(keys.len() == 4);
+	assert!(keys.contains(&Keyring::Dave.public()));
+	assert!(keys.contains(&Keyring::Eve.public()));
+	assert!(keys.contains(&key1));
+	assert!(keys.contains(&key2));
 }

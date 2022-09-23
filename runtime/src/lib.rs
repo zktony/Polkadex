@@ -1557,7 +1557,7 @@ impl_runtime_apis! {
 		}
 		/// Get unapproved reports by us for verification and signing
 		fn get_unapproved_enclave_reports(approver: &ocex_primitives::AuthorityId) -> Vec<Vec<u8>> {
-			OCEX::get_unverified_reports().into_iter().filter(|(_, approvers)| !approvers.contains(approver)).map(|(report, _)| report).collect()
+			OCEX::get_unverified_reports().into_iter().map(|(r, _)| r).collect()//.into_iter().filter(|(_, approvers)| !approvers.contains(approver)).map(|(report, _)| report).collect()
 		}
 	}
 

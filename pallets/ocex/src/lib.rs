@@ -63,6 +63,7 @@ pub mod pallet {
 	use core::ops::Div;
 	use frame_support::{
 		pallet_prelude::*,
+		sp_tracing::debug,
 		storage::bounded_btree_map::BoundedBTreeMap,
 		traits::{
 			fungibles::{Inspect, Mutate},
@@ -302,7 +303,8 @@ pub mod pallet {
 					let account_id = match T::AccountId::decode(&mut &report[368..400]) {
 						Ok(aid) => aid,
 						Err(_) => {
-							//ensure!(false, Error::<T>::SenderIsNotAttestedEnclave);
+							ensure!(false, Error::<T>::SenderIsNotAttestedEnclave);
+							// this is unreachable - for compiler happiness...
 							T::AccountId::decode(&mut &[0u8; 32].to_vec()[..]).unwrap()
 						},
 					};
@@ -814,14 +816,24 @@ pub mod pallet {
 		/// In order to register itself - enclave must send it's own report to this extrinsic
 		#[pallet::weight(<T as Config>::WeightInfo::register_enclave())]
 		pub fn register_enclave(origin: OriginFor<T>, ias_report: Vec<u8>) -> DispatchResult {
-			let enclave_signer = ensure_signed(origin)?;
+			let _ = ensure_signed(origin)?;
 
+			ensure!(ias_report.len() > 436, <Error<T>>::InvalidReportValue);
+			let enclave_signer = match T::AccountId::decode(&mut &ias_report[368..400]) {
+				Ok(aid) => aid,
+				Err(_) => {
+					ensure!(false, Error::<T>::SenderIsNotAttestedEnclave);
+					// this is unreachable - for compiler happiness...
+					T::AccountId::decode(&mut &[0u8; 32].to_vec()[..]).unwrap()
+				},
+			};
 			// Check if enclave_signer is whitelisted
-			ensure!(
-				<WhitelistedEnclaves<T>>::get(&enclave_signer),
-				<Error<T>>::EnclaveNotWhitelisted
-			);
-
+			debug!(target: "ocex", "Got report from enclave: {:?}", &enclave_signer);
+			/*			ensure!(
+							<WhitelistedEnclaves<T>>::get(&enclave_signer),
+							<Error<T>>::EnclaveNotWhitelisted
+						);
+			*/
 			<UnverifiedReports<T>>::insert(ias_report, Self::authorities());
 
 			Ok(())

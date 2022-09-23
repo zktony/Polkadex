@@ -4383,6 +4383,7 @@ dependencies = [
  "parity-scale-codec",
  "pkix",
  "sc-client-api",
+ "sc-keystore",
  "sp-api",
  "sp-application-crypto",
  "sp-core",
