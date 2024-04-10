@@ -21,6 +21,7 @@
 use crate::{storage::OffchainState, Config, Pallet};
 use core::ops::Sub;
 use log::{error, info};
+use num_traits::FromPrimitive;
 use orderbook_primitives::constants::POLKADEX_MAINNET_SS58;
 use orderbook_primitives::ocex::TradingPairConfig;
 use orderbook_primitives::types::Order;
@@ -117,7 +118,7 @@ pub fn sub_balance(
 	if *account_balance < balance {
 		// If the deviation is smaller that system limit, then we can allow what's stored in the offchain balance
 		let deviation = balance.sub(&*account_balance);
-		if !deviation.round_dp_with_strategy(8, ToZero).is_zero() {
+		if !deviation.round_dp_with_strategy(8, ToZero).is_zero() && deviation > Decimal::from_f32(0.00000001).unwrap(){
 			log::error!(target:"ocex","Asset found but balance low for asset: {:?}, of account: {:?}",asset, account);
 			return Err("NotEnoughBalance");
 		} else {
