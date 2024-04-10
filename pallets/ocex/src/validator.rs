@@ -689,7 +689,7 @@ impl<T: Config> Pallet<T> {
 			amount,
 		)?;
 		let mut withdrawal = request.convert(stid).map_err(|_| "Withdrawal conversion error")?;
-		withdrawal.amount = actual_deducted; // The acutal deducted balance
+		withdrawal.amount = actual_deducted; // The actual deducted balance
 		Ok(withdrawal)
 	}
 
