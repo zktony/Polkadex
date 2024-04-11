@@ -21,14 +21,12 @@
 use crate::{storage::OffchainState, Config, Pallet};
 use core::ops::Sub;
 use log::{error, info};
-use num_traits::FromPrimitive;
 use orderbook_primitives::constants::POLKADEX_MAINNET_SS58;
 use orderbook_primitives::ocex::TradingPairConfig;
 use orderbook_primitives::types::Order;
 use orderbook_primitives::{constants::FEE_POT_PALLET_ID, types::Trade};
 use parity_scale_codec::{alloc::string::ToString, Decode, Encode};
 use polkadex_primitives::{fees::FeeConfig, AccountId, AssetId};
-use rust_decimal::RoundingStrategy::ToZero;
 use rust_decimal::{prelude::ToPrimitive, Decimal};
 use sp_core::crypto::{ByteArray, Ss58AddressFormat, Ss58Codec};
 use sp_runtime::traits::AccountIdConversion;
@@ -105,6 +103,7 @@ pub fn sub_balance(
 	account: &AccountId,
 	asset: AssetId,
 	mut balance: Decimal,
+	is_withdrawal: bool
 ) -> Result<Decimal, &'static str> {
 	log::info!(target:"ocex", "subtracting {:?} asset {:?} from account {:?}", balance.to_f64().unwrap(), asset.to_string(), account);
 	let mut balances: BTreeMap<AssetId, Decimal> = match state.get(&account.to_raw_vec())? {
@@ -116,14 +115,14 @@ pub fn sub_balance(
 	let account_balance = balances.get_mut(&asset).ok_or("NotEnoughBalance: zero balance")?;
 
 	if *account_balance < balance {
-		// If the deviation is smaller that system limit, then we can allow what's stored in the offchain balance
-		let deviation = balance.sub(&*account_balance);
-		if !deviation.round_dp_with_strategy(8, ToZero).is_zero() && deviation > Decimal::from_f32(0.000000011).unwrap(){
+		if is_withdrawal {
+			// If the deviation is smaller that system limit, then we can allow what's stored in the offchain balance
+			let deviation = balance.sub(&*account_balance);
+			log::warn!(target:"ocex","[withdrawal] balance deviation of {:?} for asset: {:?}, of account: {:?}: Withdrawing available balance",deviation,asset.to_string(), account.to_ss58check_with_version(Ss58AddressFormat::from(POLKADEX_MAINNET_SS58)));
+			balance = *account_balance;
+		}else{
 			log::error!(target:"ocex","Asset found but balance low for asset: {:?}, of account: {:?}",asset, account);
 			return Err("NotEnoughBalance");
-		} else {
-			log::warn!(target:"ocex","Asset found but minor balance deviation of {:?} for asset: {:?}, of account: {:?}",deviation,asset.to_string(), account.to_ss58check_with_version(Ss58AddressFormat::from(POLKADEX_MAINNET_SS58)));
-			balance = *account_balance;
 		}
 	}
 	*account_balance = Order::rounding_off(account_balance.saturating_sub(balance));
@@ -171,7 +170,7 @@ impl<T: Config> Pallet<T> {
 			add_balance(state, &pot_account, maker_asset.asset, maker_fees)?;
 
 			let (maker_asset, maker_debit) = trade.debit(true);
-			sub_balance(state, &maker_asset.main, maker_asset.asset, maker_debit)?;
+			sub_balance(state, &maker_asset.main, maker_asset.asset, maker_debit, false)?;
 			maker_fees
 		};
 		let taker_fees = {
@@ -183,7 +182,7 @@ impl<T: Config> Pallet<T> {
 			add_balance(state, &pot_account, taker_asset.asset, taker_fees)?;
 
 			let (taker_asset, taker_debit) = trade.debit(false);
-			sub_balance(state, &taker_asset.main, taker_asset.asset, taker_debit)?;
+			sub_balance(state, &taker_asset.main, taker_asset.asset, taker_debit, false)?;
 			taker_fees
 		};
 

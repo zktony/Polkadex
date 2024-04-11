@@ -252,7 +252,7 @@ fn test_two_assets() {
 		let asset456 = AssetId::Asset(456);
 		let amount456 = Decimal::from_str("10.0").unwrap();
 		// works
-		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into())
+		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into(), false)
 			.unwrap();
 		add_balance(&mut state, &coinalpha, asset123, amount123.into()).unwrap();
 		add_balance(&mut state, &coinalpha, asset456, amount456.into()).unwrap();
@@ -262,9 +262,9 @@ fn test_two_assets() {
 		let mut root = crate::storage::load_trie_root();
 		let mut trie_state = crate::storage::State;
 		let mut state = OffchainState::load(&mut trie_state, &mut root);
-		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into())
+		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into(), false)
 			.unwrap();
-		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into())
+		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into(), false)
 			.unwrap();
 	});
 }
@@ -282,7 +282,7 @@ fn test_sub_balance_new_account() {
 		let mut root = crate::storage::load_trie_root();
 		let mut trie_state = crate::storage::State;
 		let mut state = OffchainState::load(&mut trie_state, &mut root);
-		let result = sub_balance(&mut state, &account_id, asset_id, amount.into());
+		let result = sub_balance(&mut state, &account_id, asset_id, amount.into(), false);
 		match result {
 			Ok(_) => assert!(false),
 			Err(e) => assert_eq!(e, "Account not found in trie"),
@@ -316,7 +316,7 @@ fn test_sub_balance_existing_account_with_balance() {
 
 		//sub balance
 		let amount2 = 2000000;
-		let result = sub_balance(&mut state, &account_id, asset_id, amount2.into()).unwrap();
+		let result = sub_balance(&mut state, &account_id, asset_id, amount2.into(), false).unwrap();
 		assert_eq!(result, amount2.into());
 		let encoded = state.get(&account_id.to_raw_vec()).unwrap().unwrap();
 		let account_info: BTreeMap<AssetId, Decimal> = BTreeMap::decode(&mut &encoded[..]).unwrap();
@@ -324,7 +324,7 @@ fn test_sub_balance_existing_account_with_balance() {
 
 		//sub balance till 0
 		let amount3 = amount - amount2;
-		let result = sub_balance(&mut state, &account_id, asset_id, amount3.into()).unwrap();
+		let result = sub_balance(&mut state, &account_id, asset_id, amount3.into(), false).unwrap();
 		assert_eq!(result, amount3.into());
 		let encoded = state.get(&account_id.to_raw_vec()).unwrap().unwrap();
 		let account_info: BTreeMap<AssetId, Decimal> = BTreeMap::decode(&mut &encoded[..]).unwrap();
@@ -417,7 +417,7 @@ fn test_balance_update_depost_first_then_trade() {
 		//sub balance till 0
 		let amount3 = Decimal::from_f64_retain(2.0).unwrap();
 		let result =
-			sub_balance(&mut state, &account_id, AssetId::Polkadex, amount3.into()).unwrap();
+			sub_balance(&mut state, &account_id, AssetId::Polkadex, amount3.into(), false).unwrap();
 		assert_eq!(result, amount3);
 	});
 }
@@ -443,7 +443,7 @@ fn test_sub_more_than_available_balance_from_existing_account_with_balance() {
 
 		//sub balance
 		let amount2 = 4000000;
-		let result = sub_balance(&mut state, &account_id, asset_id, amount2.into());
+		let result = sub_balance(&mut state, &account_id, asset_id, amount2.into(), false);
 		match result {
 			Ok(_) => assert!(false),
 			Err(e) => assert_eq!(e, "NotEnoughBalance"),
