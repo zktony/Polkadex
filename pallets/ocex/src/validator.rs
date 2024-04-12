@@ -473,7 +473,7 @@ impl<T: Config> Pallet<T> {
 									.map_err(|_| "account id decode error")?,
 								market.quote_asset,
 								withdrawing_quote,
-								false
+								false,
 							)?;
 
 							// Sub Base
@@ -483,7 +483,7 @@ impl<T: Config> Pallet<T> {
 									.map_err(|_| "account id decode error")?,
 								market.base_asset,
 								withdrawing_base,
-								false
+								false,
 							)?;
 
 							// Egress message is verified
@@ -563,7 +563,7 @@ impl<T: Config> Pallet<T> {
 							.map_err(|_| "account id decode error")?,
 						market.base_asset,
 						base_balance,
-						false
+						false,
 					)?;
 
 					sub_balance(
@@ -572,7 +572,7 @@ impl<T: Config> Pallet<T> {
 							.map_err(|_| "account id decode error")?,
 						market.quote_asset,
 						quote_balance,
-						false
+						false,
 					)?;
 
 					verified_egress_messages.push(EgressMessages::PoolForceClosed(
@@ -621,7 +621,7 @@ impl<T: Config> Pallet<T> {
 									.map_err(|_| "account id decode error")?,
 								asset,
 								balance,
-								true
+								true,
 							)?;
 						}
 						verified_egress_messages.push(egress_msg.clone());
@@ -692,7 +692,7 @@ impl<T: Config> Pallet<T> {
 				.map_err(|_| "account id decode error")?,
 			request.asset(),
 			amount,
-			true
+			true,
 		)?;
 		let mut withdrawal = request.convert(stid).map_err(|_| "Withdrawal conversion error")?;
 		withdrawal.amount = actual_deducted; // The actual deducted balance

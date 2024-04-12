@@ -103,7 +103,7 @@ pub fn sub_balance(
 	account: &AccountId,
 	asset: AssetId,
 	mut balance: Decimal,
-	is_withdrawal: bool
+	is_withdrawal: bool,
 ) -> Result<Decimal, &'static str> {
 	log::info!(target:"ocex", "subtracting {:?} asset {:?} from account {:?}", balance.to_f64().unwrap(), asset.to_string(), account);
 	let mut balances: BTreeMap<AssetId, Decimal> = match state.get(&account.to_raw_vec())? {
@@ -120,7 +120,7 @@ pub fn sub_balance(
 			let deviation = balance.sub(&*account_balance);
 			log::warn!(target:"ocex","[withdrawal] balance deviation of {:?} for asset: {:?}, of account: {:?}: Withdrawing available balance",deviation,asset.to_string(), account.to_ss58check_with_version(Ss58AddressFormat::from(POLKADEX_MAINNET_SS58)));
 			balance = *account_balance;
-		}else{
+		} else {
 			log::error!(target:"ocex","Asset found but balance low for asset: {:?}, of account: {:?}",asset, account);
 			return Err("NotEnoughBalance");
 		}

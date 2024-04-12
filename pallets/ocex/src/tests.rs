@@ -252,8 +252,14 @@ fn test_two_assets() {
 		let asset456 = AssetId::Asset(456);
 		let amount456 = Decimal::from_str("10.0").unwrap();
 		// works
-		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into(), false)
-			.unwrap();
+		sub_balance(
+			&mut state,
+			&account_id,
+			asset1,
+			Decimal::from_str("0.01").unwrap().into(),
+			false,
+		)
+		.unwrap();
 		add_balance(&mut state, &coinalpha, asset123, amount123.into()).unwrap();
 		add_balance(&mut state, &coinalpha, asset456, amount456.into()).unwrap();
 		let root = state.commit().unwrap();
@@ -262,10 +268,22 @@ fn test_two_assets() {
 		let mut root = crate::storage::load_trie_root();
 		let mut trie_state = crate::storage::State;
 		let mut state = OffchainState::load(&mut trie_state, &mut root);
-		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into(), false)
-			.unwrap();
-		sub_balance(&mut state, &account_id, asset1, Decimal::from_str("0.01").unwrap().into(), false)
-			.unwrap();
+		sub_balance(
+			&mut state,
+			&account_id,
+			asset1,
+			Decimal::from_str("0.01").unwrap().into(),
+			false,
+		)
+		.unwrap();
+		sub_balance(
+			&mut state,
+			&account_id,
+			asset1,
+			Decimal::from_str("0.01").unwrap().into(),
+			false,
+		)
+		.unwrap();
 	});
 }
 
