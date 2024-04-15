@@ -425,33 +425,10 @@ impl<T: Config> Pallet<T> {
 							user_reward_info.initial_rewards_claimable.saturated_into::<u128>();
 					}
 
-					//calculate the number of blocks the user can claim rewards
-					let current_block_no: u128 =
-						<frame_system::Pallet<T>>::block_number().saturated_into();
-					let last_reward_claimed_block_no: u128 =
-						user_reward_info.last_block_rewards_claim.saturated_into();
-					let unclaimed_blocks: u128 =
-						min(current_block_no, reward_info.end_block.saturated_into::<u128>())
-							.saturating_sub(last_reward_claimed_block_no);
-
-					// add the unclaimed block rewards to claimable rewards
+					// We compute the diff becasue end block is already complete
 					rewards_claimable = rewards_claimable.saturating_add(
-						user_reward_info
-							.factor
-							.saturated_into::<u128>()
-							.saturating_mul(unclaimed_blocks),
-					);
-
-					//ensure total_rewards_claimable - rewards_claimed >= rewards_claimable
-					//sanity check
-					ensure!(
-						user_reward_info
-							.total_reward_amount
-							.saturated_into::<u128>()
-							.saturating_sub(user_reward_info.claim_amount.saturated_into::<u128>())
-							>= rewards_claimable,
-						Error::<T>::AllRewardsAlreadyClaimed
-					);
+						user_reward_info.total_reward_amount.saturating_sub(
+							user_reward_info.claim_amount));
 
 					//ensure the claimable amount is greater than min claimable amount
 					ensure!(
@@ -466,23 +443,7 @@ impl<T: Config> Pallet<T> {
 					user_reward_info.last_block_rewards_claim =
 						<frame_system::Pallet<T>>::block_number();
 					user_reward_info.is_initial_rewards_claimed = true;
-					user_reward_info.claim_amount = user_reward_info
-						.claim_amount
-						.saturated_into::<u128>()
-						.saturating_add(rewards_claimable)
-						.saturated_into();
-
-					//set new lock on new amount
-					let reward_amount_to_lock = user_reward_info
-						.total_reward_amount
-						.saturated_into::<u128>()
-						.saturating_sub(user_reward_info.claim_amount.saturated_into::<u128>());
-					T::NativeCurrency::set_lock(
-						user_reward_info.lock_id,
-						&user,
-						reward_amount_to_lock.saturated_into(),
-						WithdrawReasons::TRANSFER,
-					);
+					user_reward_info.claim_amount = user_reward_info.total_reward_amount;
 
 					Self::deposit_event(Event::UserClaimedReward {
 						user,
