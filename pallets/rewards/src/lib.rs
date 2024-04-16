@@ -409,7 +409,7 @@ impl<T: Config> Pallet<T> {
 
 	fn do_claim(user: T::AccountId, reward_id: u32) -> DispatchResult {
 		<Distributor<T>>::mutate(reward_id, user.clone(), |user_reward_info| {
-			if let Some(reward_info) = <InitializeRewards<T>>::get(reward_id) {
+			if let Some(_reward_info) = <InitializeRewards<T>>::get(reward_id) {
 				if let Some(user_reward_info) = user_reward_info {
 					//check if user has initialize rewards or not
 					ensure!(
@@ -417,22 +417,21 @@ impl<T: Config> Pallet<T> {
 						Error::<T>::UserHasNotInitializeClaimRewards
 					);
 
-					let mut rewards_claimable: u128 = 0_u128.saturated_into();
+					let mut rewards_claimable: BalanceOf<T> = 0_u128.saturated_into();
 
 					//if initial rewards are not claimed add it to claimable rewards
 					if !user_reward_info.is_initial_rewards_claimed {
-						rewards_claimable =
-							user_reward_info.initial_rewards_claimable.saturated_into::<u128>();
+						rewards_claimable = user_reward_info.initial_rewards_claimable;
 					}
 
-					// We compute the diff becasue end block is already complete
+					// We compute the diff because end block is already complete
 					rewards_claimable = rewards_claimable.saturating_add(
 						user_reward_info.total_reward_amount.saturating_sub(
 							user_reward_info.claim_amount));
 
 					//ensure the claimable amount is greater than min claimable amount
 					ensure!(
-						rewards_claimable > MIN_REWARDS_CLAIMABLE_AMOUNT,
+						rewards_claimable.saturated_into::<u128>() > MIN_REWARDS_CLAIMABLE_AMOUNT,
 						Error::<T>::AmountToLowToRedeem
 					);
 
