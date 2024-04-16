@@ -426,8 +426,10 @@ impl<T: Config> Pallet<T> {
 
 					// We compute the diff because end block is already complete
 					rewards_claimable = rewards_claimable.saturating_add(
-						user_reward_info.total_reward_amount.saturating_sub(
-							user_reward_info.claim_amount));
+						user_reward_info
+							.total_reward_amount
+							.saturating_sub(user_reward_info.claim_amount),
+					);
 
 					//ensure the claimable amount is greater than min claimable amount
 					ensure!(
