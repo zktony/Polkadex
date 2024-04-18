@@ -291,7 +291,7 @@ impl Default for ProxyType {
 impl InstanceFilter<RuntimeCall> for ProxyType {
 	fn filter(&self, c: &RuntimeCall) -> bool {
 		match self {
-			ProxyType::Any => false,
+			ProxyType::Any => true,
 			ProxyType::NonTransfer => !matches!(
 				c,
 				RuntimeCall::Balances(..)
