@@ -604,7 +604,7 @@ use frame_benchmarking::impl_benchmark_test_suite;
 use frame_support::traits::fungibles::Create;
 use orderbook_primitives::lmp::LMPMarketConfigWrapper;
 use orderbook_primitives::ocex::TradingPairConfig;
-use polkadex_primitives::auction::AuctionInfo;
+// use polkadex_primitives::auction::AuctionInfo;
 
 #[cfg(test)]
 impl_benchmark_test_suite!(Ocex, crate::mock::new_test_ext(), crate::mock::Test);
