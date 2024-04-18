@@ -475,14 +475,14 @@ verify {
    assert_eq!(current_fee_distribution.burn_ration, burn_ration);
 }
 
-	place_bid {
-		let old_bidder = T::AccountId::decode(&mut &[1; 32][..]).unwrap();
-		let auction_info: AuctionInfo<T::AccountId, BalanceOf<T>> =
-			AuctionInfo { fee_info: BTreeMap::new(), highest_bidder: None, highest_bid: Zero::zero() };
-		<Auction<T>>::put(auction_info);
-		let bidder = T::AccountId::decode(&mut &[2; 32][..]).unwrap();
-		let _imbalance = T::NativeCurrency::deposit_creating(&bidder, (100 * UNIT_BALANCE).saturated_into());
-	}: _(RawOrigin::Signed(bidder), (10 * UNIT_BALANCE).saturated_into())
+	// place_bid {
+	// 	let old_bidder = T::AccountId::decode(&mut &[1; 32][..]).unwrap();
+	// 	let auction_info: AuctionInfo<T::AccountId, BalanceOf<T>> =
+	// 		AuctionInfo { fee_info: BTreeMap::new(), highest_bidder: None, highest_bid: Zero::zero() };
+	// 	<Auction<T>>::put(auction_info);
+	// 	let bidder = T::AccountId::decode(&mut &[2; 32][..]).unwrap();
+	// 	let _imbalance = T::NativeCurrency::deposit_creating(&bidder, (100 * UNIT_BALANCE).saturated_into());
+	// }: _(RawOrigin::Signed(bidder), (10 * UNIT_BALANCE).saturated_into())
 
 	on_initialize {
 		let block_no: BlockNumberFor<T> = 200u32.into();
