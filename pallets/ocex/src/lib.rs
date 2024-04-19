@@ -1023,28 +1023,28 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Place Bid
-		#[pallet::call_index(22)]
-		#[pallet::weight(< T as Config >::WeightInfo::place_bid())]
-		pub fn place_bid(origin: OriginFor<T>, bid_amount: BalanceOf<T>) -> DispatchResult {
-			let bidder = ensure_signed(origin)?;
-			let mut auction_info = <Auction<T>>::get().ok_or(Error::<T>::AuctionNotFound)?;
-			ensure!(bid_amount > Zero::zero(), Error::<T>::InvalidBidAmount);
-			ensure!(bid_amount > auction_info.highest_bid, Error::<T>::InvalidBidAmount);
-			ensure!(
-				T::NativeCurrency::can_reserve(&bidder, bid_amount),
-				Error::<T>::InsufficientBalance
-			);
-			T::NativeCurrency::reserve(&bidder, bid_amount)?;
-			if let Some(old_bidder) = auction_info.highest_bidder {
-				// Un-reserve the old bidder
-				T::NativeCurrency::unreserve(&old_bidder, auction_info.highest_bid);
-			}
-			auction_info.highest_bid = bid_amount;
-			auction_info.highest_bidder = Some(bidder);
-			<Auction<T>>::put(auction_info);
-			Ok(())
-		}
+		// /// Place Bid TODO: Enable it after frontend is ready.
+		// #[pallet::call_index(22)]
+		// #[pallet::weight(< T as Config >::WeightInfo::place_bid())]
+		// pub fn place_bid(origin: OriginFor<T>, bid_amount: BalanceOf<T>) -> DispatchResult {
+		// 	let bidder = ensure_signed(origin)?;
+		// 	let mut auction_info = <Auction<T>>::get().ok_or(Error::<T>::AuctionNotFound)?;
+		// 	ensure!(bid_amount > Zero::zero(), Error::<T>::InvalidBidAmount);
+		// 	ensure!(bid_amount > auction_info.highest_bid, Error::<T>::InvalidBidAmount);
+		// 	ensure!(
+		// 		T::NativeCurrency::can_reserve(&bidder, bid_amount),
+		// 		Error::<T>::InsufficientBalance
+		// 	);
+		// 	T::NativeCurrency::reserve(&bidder, bid_amount)?;
+		// 	if let Some(old_bidder) = auction_info.highest_bidder {
+		// 		// Un-reserve the old bidder
+		// 		T::NativeCurrency::unreserve(&old_bidder, auction_info.highest_bid);
+		// 	}
+		// 	auction_info.highest_bid = bid_amount;
+		// 	auction_info.highest_bidder = Some(bidder);
+		// 	<Auction<T>>::put(auction_info);
+		// 	Ok(())
+		// }
 
 		/// Starts a new liquidity mining epoch
 		#[pallet::call_index(23)]

@@ -2717,108 +2717,108 @@ fn test_close_auction_error_transfer_zero_fee() {
 	})
 }
 
-#[test]
-fn test_place_bid_happy_path() {
-	new_test_ext().execute_with(|| {
-		let auction_info =
-			AuctionInfo { fee_info: BTreeMap::new(), highest_bidder: None, highest_bid: 0 };
-		<Auction<Test>>::put(auction_info);
-		let bidder = AccountId32::new([2; 32]);
-		let bid_amount = 20 * UNIT_BALANCE;
-		//Mint Bidder
-		Balances::mint_into(&bidder, 100 * UNIT_BALANCE).unwrap();
-		assert_ok!(OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount));
-		let actual_auction_info = <Auction<Test>>::get();
-		let expected_auction_info = AuctionInfo {
-			fee_info: BTreeMap::new(),
-			highest_bidder: Some(bidder.clone()),
-			highest_bid: bid_amount,
-		};
-		assert_eq!(actual_auction_info, Some(expected_auction_info));
-		let bidder_two = AccountId32::new([3; 32]);
-		let bid_amount_two = 30 * UNIT_BALANCE;
-		//Mint Bidder
-		Balances::mint_into(&bidder_two, 100 * UNIT_BALANCE).unwrap();
-		assert_ok!(OCEX::place_bid(RuntimeOrigin::signed(bidder_two.clone()), bid_amount_two));
-		let actual_auction_info = <Auction<Test>>::get();
-		let expected_auction_info = AuctionInfo {
-			fee_info: BTreeMap::new(),
-			highest_bidder: Some(bidder_two.clone()),
-			highest_bid: bid_amount_two,
-		};
-		assert_eq!(actual_auction_info, Some(expected_auction_info));
-		assert_eq!(Balances::free_balance(&bidder), 100 * UNIT_BALANCE);
-		assert_eq!(Balances::free_balance(&bidder_two), 70 * UNIT_BALANCE);
-	})
-}
-
-#[test]
-fn test_place_bid_error_use_ext_balance_later() {
-	new_test_ext().execute_with(|| {
-		let auction_info =
-			AuctionInfo { fee_info: BTreeMap::new(), highest_bidder: None, highest_bid: 0 };
-		<Auction<Test>>::put(auction_info);
-		let bidder = AccountId32::new([2; 32]);
-		let bid_amount = 20 * UNIT_BALANCE;
-		//Mint Bidder
-		Balances::mint_into(&bidder, 100 * UNIT_BALANCE).unwrap();
-		assert_ok!(OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount));
-		let actual_auction_info = <Auction<Test>>::get();
-		let expected_auction_info = AuctionInfo {
-			fee_info: BTreeMap::new(),
-			highest_bidder: Some(bidder.clone()),
-			highest_bid: bid_amount,
-		};
-		assert_eq!(actual_auction_info, Some(expected_auction_info));
-		assert_eq!(Balances::free_balance(&bidder), 80 * UNIT_BALANCE);
-		assert_noop!(
-			Balances::transfer_allow_death(
-				RuntimeOrigin::signed(bidder),
-				AccountId32::new([9; 32]),
-				80 * UNIT_BALANCE
-			),
-			TokenError::Frozen
-		);
-	})
-}
-
-#[test]
-fn test_place_bid_error_low_bid() {
-	new_test_ext().execute_with(|| {
-		let auction_info = AuctionInfo {
-			fee_info: BTreeMap::new(),
-			highest_bidder: Some(AccountId32::new([10; 32])),
-			highest_bid: 20 * UNIT_BALANCE,
-		};
-		<Auction<Test>>::put(auction_info);
-		let bidder = AccountId32::new([2; 32]);
-		let bid_amount = 10 * UNIT_BALANCE;
-		//Mint Bidder
-		Balances::mint_into(&bidder, 100 * UNIT_BALANCE).unwrap();
-		assert_noop!(
-			OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount),
-			crate::pallet::Error::<Test>::InvalidBidAmount
-		);
-	})
-}
-
-#[test]
-fn test_place_bid_error_insufficient_balance() {
-	new_test_ext().execute_with(|| {
-		let auction_info = AuctionInfo {
-			fee_info: BTreeMap::new(),
-			highest_bidder: Some(AccountId32::new([10; 32])),
-			highest_bid: 20 * UNIT_BALANCE,
-		};
-		<Auction<Test>>::put(auction_info);
-		let bidder = AccountId32::new([2; 32]);
-		let bid_amount = 30 * UNIT_BALANCE;
-		assert_noop!(
-			OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount),
-			crate::pallet::Error::<Test>::InsufficientBalance
-		);
-	})
-}
+// #[test]
+// fn test_place_bid_happy_path() {
+// 	new_test_ext().execute_with(|| {
+// 		let auction_info =
+// 			AuctionInfo { fee_info: BTreeMap::new(), highest_bidder: None, highest_bid: 0 };
+// 		<Auction<Test>>::put(auction_info);
+// 		let bidder = AccountId32::new([2; 32]);
+// 		let bid_amount = 20 * UNIT_BALANCE;
+// 		//Mint Bidder
+// 		Balances::mint_into(&bidder, 100 * UNIT_BALANCE).unwrap();
+// 		assert_ok!(OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount));
+// 		let actual_auction_info = <Auction<Test>>::get();
+// 		let expected_auction_info = AuctionInfo {
+// 			fee_info: BTreeMap::new(),
+// 			highest_bidder: Some(bidder.clone()),
+// 			highest_bid: bid_amount,
+// 		};
+// 		assert_eq!(actual_auction_info, Some(expected_auction_info));
+// 		let bidder_two = AccountId32::new([3; 32]);
+// 		let bid_amount_two = 30 * UNIT_BALANCE;
+// 		//Mint Bidder
+// 		Balances::mint_into(&bidder_two, 100 * UNIT_BALANCE).unwrap();
+// 		assert_ok!(OCEX::place_bid(RuntimeOrigin::signed(bidder_two.clone()), bid_amount_two));
+// 		let actual_auction_info = <Auction<Test>>::get();
+// 		let expected_auction_info = AuctionInfo {
+// 			fee_info: BTreeMap::new(),
+// 			highest_bidder: Some(bidder_two.clone()),
+// 			highest_bid: bid_amount_two,
+// 		};
+// 		assert_eq!(actual_auction_info, Some(expected_auction_info));
+// 		assert_eq!(Balances::free_balance(&bidder), 100 * UNIT_BALANCE);
+// 		assert_eq!(Balances::free_balance(&bidder_two), 70 * UNIT_BALANCE);
+// 	})
+// }
+//
+// #[test]
+// fn test_place_bid_error_use_ext_balance_later() {
+// 	new_test_ext().execute_with(|| {
+// 		let auction_info =
+// 			AuctionInfo { fee_info: BTreeMap::new(), highest_bidder: None, highest_bid: 0 };
+// 		<Auction<Test>>::put(auction_info);
+// 		let bidder = AccountId32::new([2; 32]);
+// 		let bid_amount = 20 * UNIT_BALANCE;
+// 		//Mint Bidder
+// 		Balances::mint_into(&bidder, 100 * UNIT_BALANCE).unwrap();
+// 		assert_ok!(OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount));
+// 		let actual_auction_info = <Auction<Test>>::get();
+// 		let expected_auction_info = AuctionInfo {
+// 			fee_info: BTreeMap::new(),
+// 			highest_bidder: Some(bidder.clone()),
+// 			highest_bid: bid_amount,
+// 		};
+// 		assert_eq!(actual_auction_info, Some(expected_auction_info));
+// 		assert_eq!(Balances::free_balance(&bidder), 80 * UNIT_BALANCE);
+// 		assert_noop!(
+// 			Balances::transfer_allow_death(
+// 				RuntimeOrigin::signed(bidder),
+// 				AccountId32::new([9; 32]),
+// 				80 * UNIT_BALANCE
+// 			),
+// 			TokenError::Frozen
+// 		);
+// 	})
+// }
+//
+// #[test]
+// fn test_place_bid_error_low_bid() {
+// 	new_test_ext().execute_with(|| {
+// 		let auction_info = AuctionInfo {
+// 			fee_info: BTreeMap::new(),
+// 			highest_bidder: Some(AccountId32::new([10; 32])),
+// 			highest_bid: 20 * UNIT_BALANCE,
+// 		};
+// 		<Auction<Test>>::put(auction_info);
+// 		let bidder = AccountId32::new([2; 32]);
+// 		let bid_amount = 10 * UNIT_BALANCE;
+// 		//Mint Bidder
+// 		Balances::mint_into(&bidder, 100 * UNIT_BALANCE).unwrap();
+// 		assert_noop!(
+// 			OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount),
+// 			crate::pallet::Error::<Test>::InvalidBidAmount
+// 		);
+// 	})
+// }
+//
+// #[test]
+// fn test_place_bid_error_insufficient_balance() {
+// 	new_test_ext().execute_with(|| {
+// 		let auction_info = AuctionInfo {
+// 			fee_info: BTreeMap::new(),
+// 			highest_bidder: Some(AccountId32::new([10; 32])),
+// 			highest_bid: 20 * UNIT_BALANCE,
+// 		};
+// 		<Auction<Test>>::put(auction_info);
+// 		let bidder = AccountId32::new([2; 32]);
+// 		let bid_amount = 30 * UNIT_BALANCE;
+// 		assert_noop!(
+// 			OCEX::place_bid(RuntimeOrigin::signed(bidder.clone()), bid_amount),
+// 			crate::pallet::Error::<Test>::InsufficientBalance
+// 		);
+// 	})
+// }
 
 pub fn create_fee_config() {
 	let recipient_address = AccountId32::new([1; 32]);
