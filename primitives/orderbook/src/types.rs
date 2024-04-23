@@ -1056,6 +1056,7 @@ mod tests {
 		let payload = "hello world!";
 		let account =
 			AccountId::from_str("5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug").unwrap();
+		// raw signature from polkadot.js extension signRaw
 		let raw_signature = "36751864552cb500ef323ad1b4bd559ade88cff9b922bfdd0b1c18ace7429f57eacc2421dc3ea38a9c434593461fcae0ffa751280e25fedb48e406e42e0f6b82";
 		//convert raw signature to sr25519 signature
 		let sig = hex::decode(raw_signature).unwrap();
