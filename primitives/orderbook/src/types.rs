@@ -91,9 +91,8 @@ pub struct Trade {
 
 impl VerifyExtensionSignature<AccountId> for MultiSignature {
 	fn verify_extension_signature(&self, payload: &str, account: &AccountId) -> bool {
-		const PREFIX: &str = "<Bytes>";
-		const POSTFIX: &str = "</Bytes>";
-		let wrapped_payload = PREFIX.to_string() + payload + POSTFIX;
+		let wrapped_payload = crate::constants::EXT_WRAP_PREFIX.to_string()
+			+ payload + crate::constants::EXT_WRAP_POSTFIX;
 		return self.verify(wrapped_payload.as_bytes(), account);
 	}
 }
