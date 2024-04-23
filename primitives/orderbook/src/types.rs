@@ -667,6 +667,7 @@ impl Order {
 				return true;
 			}
 		}
+		log::error!(target:"orderbook","orderbook extension signature check failed");
 		false
 	}
 
