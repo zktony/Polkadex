@@ -41,6 +41,7 @@ use std::{
 	ops::{Mul, Rem},
 	str::FromStr,
 };
+
 pub type OrderId = H256;
 
 /// Defined account information required for the "Orderbook" client.
@@ -86,6 +87,13 @@ pub struct Trade {
 	pub amount: Decimal,
 	/// Timestamp of the trade.
 	pub time: i64,
+}
+
+impl VerifyExtensionSignature<AccountId> for MultiSignature {
+	fn verify_extension_signature(&self, payload: &str, account: &AccountId) -> bool {
+		let wrapped_payload = format!("<Bytes>{}<Bytes>", payload);
+		return self.verify(wrapped_payload.as_bytes(), account);
+	}
 }
 
 impl Trade {
@@ -303,8 +311,10 @@ impl<AccountId: Codec + Clone + TypeInfo> WithdrawalRequest<AccountId> {
 		Decimal::from_str(&self.payload.amount)
 	}
 }
+
 use crate::ingress::{EgressMessages, IngressMessages};
 use crate::ocex::TradingPairConfig;
+use crate::traits::VerifyExtensionSignature;
 #[cfg(not(feature = "std"))]
 use core::{
 	ops::{Mul, Rem},
@@ -313,6 +323,7 @@ use core::{
 use frame_support::{Deserialize, Serialize};
 use parity_scale_codec::alloc::string::ToString;
 use scale_info::prelude::string::String;
+use sp_runtime::MultiSignature;
 use sp_std::collections::btree_map::BTreeMap;
 
 /// Withdraw payload requested by user.
@@ -644,10 +655,19 @@ impl Order {
 	pub fn verify_signature(&self) -> bool {
 		let payload: OrderPayload = self.clone().into();
 		let result = self.signature.verify(&payload.encode()[..], &self.user);
-		if !result {
-			log::error!(target:"orderbook","Order signature check failed");
+		if result {
+			return true;
 		}
-		result
+		log::error!(target:"orderbook","Order signature check failed");
+		let payload_str = serde_json::to_string(&payload);
+		if let Ok(payload_str) = payload_str {
+			let result =
+				self.signature.verify_extension_signature(&payload_str, &self.main_account);
+			if result {
+				return true;
+			}
+		}
+		false
 	}
 
 	/// Returns the key used for storing in orderbook
@@ -905,6 +925,7 @@ impl From<Order> for OrderPayload {
 		}
 	}
 }
+
 #[cfg(feature = "std")]
 impl TryFrom<OrderDetails> for Order {
 	type Error = &'static str;
@@ -970,6 +991,26 @@ pub struct WithdrawalDetails {
 	pub proxy: AccountId,
 	/// Signature.
 	pub signature: Signature,
+}
+
+impl WithdrawalDetails {
+	/// Verifies the signature.
+	pub fn verify_signature(&self) -> bool {
+		let result = self.signature.verify(self.payload.encode().as_ref(), &self.proxy);
+		if result {
+			return true;
+		}
+		log::error!(target:"orderbook","Withdrawal signature check failed");
+		let payload_str = serde_json::to_string(&self.payload);
+		if let Ok(payload_str) = payload_str {
+			let result = self.signature.verify_extension_signature(&payload_str, &self.main);
+			if result {
+				return true;
+			}
+		}
+		log::error!(target:"orderbook","Withdrawal extension signature check failed");
+		false
+	}
 }
 
 /// Overarching type used by validators when submitting
