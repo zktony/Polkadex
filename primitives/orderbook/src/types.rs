@@ -91,7 +91,7 @@ pub struct Trade {
 
 impl VerifyExtensionSignature<AccountId> for MultiSignature {
 	fn verify_extension_signature(&self, payload: &str, account: &AccountId) -> bool {
-		let wrapped_payload = format!("<Bytes>{}<Bytes>", payload);
+		let wrapped_payload = format!("<Bytes>{}</Bytes>", payload);
 		return self.verify(wrapped_payload.as_bytes(), account);
 	}
 }
@@ -1028,10 +1028,13 @@ pub struct ApprovedSnapshot {
 #[cfg(test)]
 mod tests {
 	use crate::ingress::{EgressMessages, IngressMessages};
+	use crate::traits::VerifyExtensionSignature;
 	use crate::types::UserActions;
 	use polkadex_primitives::{AccountId, AssetId};
 	use rust_decimal::Decimal;
+	use sp_runtime::MultiSignature;
 	use std::collections::BTreeMap;
+	use std::str::FromStr;
 
 	#[test]
 	pub fn test_serialize_deserialize_user_actions() {
@@ -1046,5 +1049,19 @@ mod tests {
 		);
 
 		serde_json::to_vec(&action).unwrap();
+	}
+
+	#[test]
+	pub fn verify_signature_from_extension() {
+		let payload = "hello world!";
+		let account =
+			AccountId::from_str("5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug").unwrap();
+		let raw_signature = "36751864552cb500ef323ad1b4bd559ade88cff9b922bfdd0b1c18ace7429f57eacc2421dc3ea38a9c434593461fcae0ffa751280e25fedb48e406e42e0f6b82";
+		//convert raw signature to sr25519 signature
+		let sig = hex::decode(raw_signature).unwrap();
+		let sig = sp_core::sr25519::Signature::from_slice(&sig[..]).unwrap();
+		let sig = MultiSignature::from(sig);
+		let result = sig.verify_extension_signature(&payload, &account);
+		assert_eq!(result, true);
 	}
 }

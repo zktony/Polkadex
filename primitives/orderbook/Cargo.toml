@@ -25,7 +25,7 @@ anyhow = { version = "1.0.69", default-features = false }
 rust_decimal = { git = "https://github.com/Polkadex-Substrate/rust-decimal.git", branch = "master", features = [
   "scale-codec",
 ], default-features = false }
-
+hex = { workspace = true }
 
 [dev-dependencies]
 serde_json = "1.0.94"
