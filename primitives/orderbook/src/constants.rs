@@ -35,6 +35,8 @@ pub const MAX_PRICE: Balance = 10000000 * UNIT_BALANCE;
 
 pub const FEE_POT_PALLET_ID: PalletId = PalletId(*b"ocexfees");
 
+pub const EXT_WRAP_PREFIX: &str = "<Bytes>";
+pub const EXT_WRAP_POSTFIX: &str = "</Bytes>";
 #[cfg(test)]
 mod test {
 	use crate::constants::{MAX_PRICE, MAX_QTY, POLKADEX_MAINNET_SS58};
