@@ -771,42 +771,43 @@ impl<T: Config> Pallet<T> {
 		// This last message should be signed by the outgoing set
 		// Similar to how Grandpa's session change works.
 		if incoming != queued {
-			let mut uncompressed_keys: Vec<[u8; 20]> = vec![];
-			for public_key in queued.clone().into_iter() {
-				let public_key: sp_core::ecdsa::Public = public_key.into();
-				if public_key.0 == [0u8; 33] {
-					uncompressed_keys.push([0u8; 20]);
-					continue;
-				}
-				if let Ok(compressed_key) = libsecp256k1::PublicKey::parse_compressed(&public_key.0)
-				{
-					let uncompressed_key = compressed_key.serialize();
-					let uncompressed_key: [u8; 64] =
-						if let Ok(uncompressed_key) = uncompressed_key[1..65].try_into() {
-							uncompressed_key
-						} else {
-							log::error!(target: "thea", "Unable to slice last 64 bytes of uncompressed_key for Evm");
-							Self::deposit_event(Event::<T>::UnableToSlicePublicKeyHash(
-								public_key.into(),
-							));
-							return;
-						};
-					let hash: [u8; 32] = sp_io::hashing::keccak_256(&uncompressed_key);
-					if let Ok(address) = hash[12..32].try_into() {
-						uncompressed_keys.push(address);
-					} else {
-						log::error!(target: "thea", "Unable to slice last 20 bytes of hash for Evm");
-						Self::deposit_event(Event::<T>::UnableToSlicePublicKeyHash(
-							public_key.into(),
-						));
-						return;
-					}
-				} else {
-					log::error!(target: "thea", "Unable to parse compressed key");
-					Self::deposit_event(Event::<T>::UnableToParsePublicKey(public_key.into()));
-					return;
-				}
-			}
+			let uncompressed_keys: Vec<[u8; 20]> = vec![];
+			// TODO: Uncomment the following when parsing is fixed for ethereum keys.
+			// for public_key in queued.clone().into_iter() {
+			// 	let public_key: sp_core::ecdsa::Public = public_key.into();
+			// 	if public_key.0 == [0u8; 33] {
+			// 		uncompressed_keys.push([0u8; 20]);
+			// 		continue;
+			// 	}
+			// 	if let Ok(compressed_key) = libsecp256k1::PublicKey::parse_compressed(&public_key.0)
+			// 	{
+			// 		let uncompressed_key = compressed_key.serialize();
+			// 		let uncompressed_key: [u8; 64] =
+			// 			if let Ok(uncompressed_key) = uncompressed_key[1..65].try_into() {
+			// 				uncompressed_key
+			// 			} else {
+			// 				log::error!(target: "thea", "Unable to slice last 64 bytes of uncompressed_key for Evm");
+			// 				Self::deposit_event(Event::<T>::UnableToSlicePublicKeyHash(
+			// 					public_key.into(),
+			// 				));
+			// 				return;
+			// 			};
+			// 		let hash: [u8; 32] = sp_io::hashing::keccak_256(&uncompressed_key);
+			// 		if let Ok(address) = hash[12..32].try_into() {
+			// 			uncompressed_keys.push(address);
+			// 		} else {
+			// 			log::error!(target: "thea", "Unable to slice last 20 bytes of hash for Evm");
+			// 			Self::deposit_event(Event::<T>::UnableToSlicePublicKeyHash(
+			// 				public_key.into(),
+			// 			));
+			// 			return;
+			// 		}
+			// 	} else {
+			// 		log::error!(target: "thea", "Unable to parse compressed key");
+			// 		Self::deposit_event(Event::<T>::UnableToParsePublicKey(public_key.into()));
+			// 		return;
+			// 	}
+			// }
 			for network in &active_networks {
 				let network_config = <NetworkConfig<T>>::get(*network);
 				let message = match network_config.network_type {
@@ -849,7 +850,7 @@ impl<T: Config> Pallet<T> {
 			<ValidatorSetId<T>>::put(new_id);
 			for network in active_networks {
 				let message =
-					Self::generate_payload(PayloadType::ValidatorsRotated, network, Vec::new()); //Empty data means acitvate the next set_id
+					Self::generate_payload(PayloadType::ValidatorsRotated, network, Vec::new()); //Empty data means activate the next set_id
 				<OutgoingNonce<T>>::insert(network, message.nonce);
 				<OutgoingMessages<T>>::insert(network, message.nonce, message);
 			}
