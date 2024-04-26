@@ -1031,7 +1031,7 @@ pub struct ApprovedSnapshot {
 mod tests {
 	use crate::ingress::{EgressMessages, IngressMessages};
 	use crate::traits::VerifyExtensionSignature;
-	use crate::types::UserActions;
+	use crate::types::{Order, OrderDetails, OrderPayload, UserActions};
 	use polkadex_primitives::{AccountId, AssetId};
 	use rust_decimal::Decimal;
 	use sp_runtime::MultiSignature;
@@ -1067,5 +1067,20 @@ mod tests {
 		let sig = MultiSignature::from(sig);
 		let result = sig.verify_extension_signature(&payload, &account);
 		assert_eq!(result, true);
+	}
+
+	#[test]
+	pub fn verify_order_signed_by_extension() {
+		let order_payload_str = "{\"client_order_id\":\"0x7765626170702d000079a87e313975c2490257e1ea808147fd0d7a096930b4c3\",\"user\":\"5Cct7e6gLzXHN35Zc9QYqA1DXPeJFhqt3RiZGzCMzo16JwjC\",\"main_account\":\"5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug\",\"pair\":\"PDEX-3496813586714279103986568049643838918\",\"side\":\"Ask\",\"order_type\":\"LIMIT\",\"quote_order_quantity\":\"0\",\"qty\":\"1\",\"price\":\"1\",\"timestamp\":1714158182636}";
+		let signature_payload_str = "{\"Sr25519\":\"32ce7e9d9ca9eb84447a079e5309e313a3a6767211c5b5957d6512825f0d2f00dcccc1ca57cc514e9a82d605431e989b03bbceca29a421e515023f138ea6ff84\"}";
+		let payload = serde_json::from_str::<OrderPayload>(order_payload_str).unwrap();
+		let signature = serde_json::from_str::<MultiSignature>(signature_payload_str).unwrap();
+		// Convert to Order type for primitives
+		let order_details = OrderDetails { payload: payload.clone(), signature: signature.clone() };
+		let order: Order = Order::try_from(order_details).unwrap();
+		let json_str = serde_json::to_string(&OrderPayload::from(order.clone())).unwrap();
+		assert_eq!(json_str, order_payload_str);
+		let result = signature.verify_extension_signature(&json_str, &payload.main_account);
+		assert_eq!(order.verify_signature(), true);
 	}
 }
