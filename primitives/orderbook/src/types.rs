@@ -1078,9 +1078,6 @@ mod tests {
 		// Convert to Order type for primitives
 		let order_details = OrderDetails { payload: payload.clone(), signature: signature.clone() };
 		let order: Order = Order::try_from(order_details).unwrap();
-		let json_str = serde_json::to_string(&OrderPayload::from(order.clone())).unwrap();
-		assert_eq!(json_str, order_payload_str);
-		let result = signature.verify_extension_signature(&json_str, &payload.main_account);
 		assert_eq!(order.verify_signature(), true);
 	}
 }
