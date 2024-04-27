@@ -1003,39 +1003,6 @@ impl TryFrom<OrderDetails> for Order {
 	}
 }
 
-/// Defines withdraw details DTO.
-#[derive(Clone, Debug, Encode, Decode, Eq, PartialEq, Serialize, Deserialize)]
-pub struct WithdrawalDetails {
-	/// Withdraw payload.
-	pub payload: WithdrawPayloadCallByUser,
-	/// Main account identifier.
-	pub main: AccountId,
-	/// Proxy account identifier.
-	pub proxy: AccountId,
-	/// Signature.
-	pub signature: Signature,
-}
-
-impl WithdrawalDetails {
-	/// Verifies the signature.
-	pub fn verify_signature(&self) -> bool {
-		let result = self.signature.verify(self.payload.encode().as_ref(), &self.proxy);
-		if result {
-			return true;
-		}
-		log::error!(target:"orderbook","Withdrawal signature check failed");
-		let payload_str = serde_json::to_string(&self.payload);
-		if let Ok(payload_str) = payload_str {
-			let result = self.signature.verify_extension_signature(&payload_str, &self.main);
-			if result {
-				return true;
-			}
-		}
-		log::error!(target:"orderbook","Withdrawal extension signature check failed");
-		false
-	}
-}
-
 /// Overarching type used by validators when submitting
 /// their signature for a summary to aggregator
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -1054,7 +1021,7 @@ mod tests {
 	use crate::traits::VerifyExtensionSignature;
 	use crate::types::{
 		Order, OrderDetails, OrderPayload, UserActions, WithdrawPayloadCallByUser,
-		WithdrawalDetails, WithdrawalRequest,
+		WithdrawalRequest,
 	};
 	use polkadex_primitives::{AccountId, AssetId};
 	use rust_decimal::Decimal;
@@ -1103,25 +1070,6 @@ mod tests {
 		let order_details = OrderDetails { payload: payload.clone(), signature: signature.clone() };
 		let order: Order = Order::try_from(order_details).unwrap();
 		assert_eq!(order.verify_signature(), true);
-	}
-
-	#[test]
-	pub fn verify_withdrawal_signed_by_extension() {
-		let withdraw_payload_str =
-			"{\"asset_id\":{\"asset\":\"PDEX\"},\"amount\":\"1.11111111\",\"timestamp\":1714229288928}";
-		let signature_payload_str =
-			"{\"Sr25519\":\"785ae7c0ece6fb07429689f0b7d30f11e8f612507fbbc4edb3cbc668f7b4d3060a460b32ae2d4fed52b97faf21d9de768881d25711c9141fde40af4d58e57886\"}";
-		let payload =
-			serde_json::from_str::<WithdrawPayloadCallByUser>(withdraw_payload_str).unwrap();
-		let signature = serde_json::from_str::<MultiSignature>(signature_payload_str).unwrap();
-		const MAIN_ACCOUNT: &str = "5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug";
-		let details = WithdrawalDetails {
-			payload: payload.clone(),
-			main: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
-			proxy: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
-			signature: signature.clone(),
-		};
-		assert_eq!(details.verify_signature(), true);
 	}
 
 	#[test]
