@@ -1706,12 +1706,16 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure!(Self::orderbook_operational_state(), Error::<T>::ExchangeNotOperational);
 			ensure!(<AllowlistedToken<T>>::get().contains(&asset), Error::<T>::TokenNotAllowlisted);
-			// Check if account is registered
-			ensure!(<Accounts<T>>::contains_key(&user), Error::<T>::AccountNotRegistered);
 			ensure!(amount.saturated_into::<u128>() <= DEPOSIT_MAX, Error::<T>::AmountOverflow);
 			let converted_amount = Decimal::from(amount.saturated_into::<u128>())
 				.checked_div(Decimal::from(UNIT_BALANCE))
 				.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
+
+			// if a new user is depositing, then register the user with main account as proxy
+			if !<Accounts<T>>::contains_key(&user){
+				Self::register_user(user.clone(), user.clone())?;
+			}
+
 			Self::transfer_asset(&user, &Self::get_pallet_account(), amount, asset)?;
 			// Get Storage Map Value
 			if let Some(expected_total_amount) =
