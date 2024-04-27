@@ -1031,7 +1031,10 @@ pub struct ApprovedSnapshot {
 mod tests {
 	use crate::ingress::{EgressMessages, IngressMessages};
 	use crate::traits::VerifyExtensionSignature;
-	use crate::types::{Order, OrderDetails, OrderPayload, UserActions};
+	use crate::types::{
+		Order, OrderDetails, OrderPayload, UserActions, WithdrawPayloadCallByUser,
+		WithdrawalDetails,
+	};
 	use polkadex_primitives::{AccountId, AssetId};
 	use rust_decimal::Decimal;
 	use sp_runtime::MultiSignature;
@@ -1079,5 +1082,24 @@ mod tests {
 		let order_details = OrderDetails { payload: payload.clone(), signature: signature.clone() };
 		let order: Order = Order::try_from(order_details).unwrap();
 		assert_eq!(order.verify_signature(), true);
+	}
+
+	#[test]
+	pub fn verify_withdrawal_signed_by_extension() {
+		let withdraw_payload_str =
+			"{\"asset_id\":{\"asset\":\"PDEX\"},\"amount\":\"1.11111111\",\"timestamp\":1714229288928}";
+		let signature_payload_str =
+			"{\"Sr25519\":\"785ae7c0ece6fb07429689f0b7d30f11e8f612507fbbc4edb3cbc668f7b4d3060a460b32ae2d4fed52b97faf21d9de768881d25711c9141fde40af4d58e57886\"}";
+		let payload =
+			serde_json::from_str::<WithdrawPayloadCallByUser>(withdraw_payload_str).unwrap();
+		let signature = serde_json::from_str::<MultiSignature>(signature_payload_str).unwrap();
+		const MAIN_ACCOUNT: &str = "5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug";
+		let details = WithdrawalDetails {
+			payload: payload.clone(),
+			main: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
+			proxy: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
+			signature: signature.clone(),
+		};
+		assert_eq!(details.verify_signature(), true);
 	}
 }
