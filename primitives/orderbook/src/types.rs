@@ -295,11 +295,32 @@ impl<AccountId: Clone + Codec + TypeInfo> WithdrawalRequest<AccountId> {
 impl<AccountId: Codec + Clone + TypeInfo> WithdrawalRequest<AccountId> {
 	/// Verifies request payload.
 	pub fn verify(&self) -> bool {
-		let signer = match Decode::decode(&mut &self.proxy.encode()[..]) {
-			Ok(signer) => signer,
-			Err(_) => return false,
-		};
-		self.signature.verify(self.payload.encode().as_ref(), &signer)
+		// check signature with proxy account
+		let signer = Decode::decode(&mut &self.proxy.encode()[..]);
+		let mut result = false;
+		if let Ok(signer) = signer {
+			result = self.signature.verify(self.payload.encode().as_ref(), &signer);
+		}
+		if result {
+			return true;
+		}
+		log::error!(target:"orderbook","Withdrawal request signature check failed");
+
+		// check signature with main account
+		let signer = Decode::decode(&mut &self.main.encode()[..]);
+		match signer {
+			Ok(main) => {
+				let payload_str = serde_json::to_string(&self.payload);
+				if let Ok(payload_str) = payload_str {
+					return self.signature.verify_extension_signature(&payload_str, &main);
+				}
+				false
+			},
+			Err(err) => {
+				log::error!(target:"orderbook","Withdrawal request signature check failed {:}", err);
+				return false;
+			},
+		}
 	}
 
 	/// Instantiates `AccountAsset` DTO based on owning data.
@@ -1033,7 +1054,7 @@ mod tests {
 	use crate::traits::VerifyExtensionSignature;
 	use crate::types::{
 		Order, OrderDetails, OrderPayload, UserActions, WithdrawPayloadCallByUser,
-		WithdrawalDetails,
+		WithdrawalDetails, WithdrawalRequest,
 	};
 	use polkadex_primitives::{AccountId, AssetId};
 	use rust_decimal::Decimal;
@@ -1101,5 +1122,24 @@ mod tests {
 			signature: signature.clone(),
 		};
 		assert_eq!(details.verify_signature(), true);
+	}
+
+	#[test]
+	pub fn verify_withdrawal_request_signed_by_extension() {
+		let withdraw_payload_str =
+			"{\"asset_id\":{\"asset\":\"PDEX\"},\"amount\":\"1.11111111\",\"timestamp\":1714229288928}";
+		let signature_payload_str =
+			"{\"Sr25519\":\"785ae7c0ece6fb07429689f0b7d30f11e8f612507fbbc4edb3cbc668f7b4d3060a460b32ae2d4fed52b97faf21d9de768881d25711c9141fde40af4d58e57886\"}";
+		let payload =
+			serde_json::from_str::<WithdrawPayloadCallByUser>(withdraw_payload_str).unwrap();
+		let signature = serde_json::from_str::<MultiSignature>(signature_payload_str).unwrap();
+		const MAIN_ACCOUNT: &str = "5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug";
+		let request = WithdrawalRequest {
+			payload: payload.clone(),
+			main: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
+			proxy: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
+			signature: signature.clone(),
+		};
+		assert_eq!(request.verify(), true);
 	}
 }
