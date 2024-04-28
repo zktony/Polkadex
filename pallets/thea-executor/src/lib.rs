@@ -25,6 +25,8 @@
 extern crate core;
 
 use frame_support::pallet_prelude::Weight;
+use frame_support::traits::fungibles::Create;
+use sp_runtime::traits::One;
 pub use pallet::*;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -470,6 +472,19 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight(< T as Config >::TheaExecWeightInfo::claim_deposit(1))]
+		#[transactional]
+		pub fn create_parachain_asset(origin: OriginFor<T>, asset: AssetId, decimal: u8) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+            let asset_id = Self::generate_asset_id_for_parachain(asset);
+			Self::resolve_create(asset_id.into(), Self::thea_account(), 1u128)?;
+			let metadata = AssetMetadata::new(decimal).ok_or(Error::<T>::InvalidDecimal)?;
+			<Metadata<T>>::insert(asset_id, metadata);
+			Self::deposit_event(Event::<T>::AssetMetadataSet(metadata));
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -676,6 +691,11 @@ pub mod pallet {
 				deposit.id,
 			));
 			Ok(())
+		}
+
+		pub fn generate_asset_id_for_parachain(asset: AssetId) -> u128 {
+			let asset_id = u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]));
+			asset_id
 		}
 	}
 
