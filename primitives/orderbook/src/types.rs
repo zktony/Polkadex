@@ -318,7 +318,7 @@ impl<AccountId: Codec + Clone + TypeInfo> WithdrawalRequest<AccountId> {
 			},
 			Err(err) => {
 				log::error!(target:"orderbook","Withdrawal request signature check failed {:}", err);
-				false;
+				false
 			},
 		}
 	}
