@@ -27,13 +27,13 @@ use frame_support::{
 use frame_system::EventRecord;
 use parity_scale_codec::Encode;
 use sp_core::H160;
-use sp_runtime::{
-	traits::{AccountIdConversion, BadOrigin},
-	SaturatedConversion,
-};
+use sp_runtime::{traits::{AccountIdConversion, BadOrigin}, SaturatedConversion, TokenError};
 use thea_primitives::types::NewWithdraw;
 use thea_primitives::types::{AssetMetadata, Deposit};
 use xcm::{opaque::lts::Junctions, v3::MultiLocation, VersionedMultiLocation};
+use frame_support::traits::fungibles::Inspect;
+use sp_runtime::legacy::byte_sized_error::DispatchError;
+use xcm::v3::Junction;
 
 fn assert_last_event<T: crate::Config>(generic_event: <T as crate::Config>::RuntimeEvent) {
 	let events = frame_system::Pallet::<T>::events();
@@ -514,6 +514,21 @@ fn test_claim_deposit_returns_asset_not_registered() {
 			TheaExecutor::do_deposit(1, &vec![deposit].encode()),
 			crate::Error::<Test>::AssetNotRegistered
 		);
+	})
+}
+
+#[test]
+fn test_create_parachain_asset() {
+	new_test_ext().execute_with(|| {
+		let multilocation = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(100)) };
+		let asset = xcm::v3::AssetId::Concrete(multilocation);
+		assert_ok!(TheaExecutor::create_parachain_asset(RuntimeOrigin::root(), asset, 10));
+		let asset_id = TheaExecutor::generate_asset_id_for_parachain(asset);
+		assert!(Assets::asset_exists(asset_id));
+		let expected_metadata = AssetMetadata::new(10);
+		let actual_metadata = <Metadata<Test>>::get(asset_id);
+		assert_eq!(expected_metadata, actual_metadata);
+		assert!(TheaExecutor::create_parachain_asset(RuntimeOrigin::root(), asset, 10).is_err());
 	})
 }
 
