@@ -477,7 +477,7 @@ pub mod pallet {
 		#[transactional]
 		pub fn create_parachain_asset(
 			origin: OriginFor<T>,
-			asset: XcmAssetId,
+			asset: Box<XcmAssetId>,
 			decimal: u8,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
@@ -696,9 +696,8 @@ pub mod pallet {
 			Ok(())
 		}
 
-		pub fn generate_asset_id_for_parachain(asset: XcmAssetId) -> u128 {
-			let asset_id = u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]));
-			asset_id
+		pub fn generate_asset_id_for_parachain(asset: Box<XcmAssetId>) -> u128 {
+			u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]))
 		}
 	}
 
