@@ -477,11 +477,11 @@ pub mod pallet {
 		#[transactional]
 		pub fn create_parachain_asset(
 			origin: OriginFor<T>,
-			asset: Box<XcmAssetId>,
+			asset: sp_std::boxed::Box<XcmAssetId>,
 			decimal: u8,
 		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
-			let asset_id = Self::generate_asset_id_for_parachain(asset);
+			let asset_id = polkadex_primitives::assets::generate_asset_id_for_parachain(asset);
 			Self::resolve_create(asset_id.into(), Self::thea_account(), 1u128)?;
 			let metadata = AssetMetadata::new(decimal).ok_or(Error::<T>::InvalidDecimal)?;
 			<Metadata<T>>::insert(asset_id, metadata);
@@ -694,10 +694,6 @@ pub mod pallet {
 				deposit.id,
 			));
 			Ok(())
-		}
-
-		pub fn generate_asset_id_for_parachain(asset: Box<XcmAssetId>) -> u128 {
-			u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]))
 		}
 	}
 

@@ -20,6 +20,7 @@ use crate::Balance;
 #[cfg(not(feature = "std"))]
 use codec::alloc::string::ToString;
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::__private::sp_io;
 use frame_support::{
 	ensure,
 	traits::{
@@ -273,6 +274,10 @@ impl<'de> Visitor<'de> for AssetId {
 		}
 		Err(A::Error::invalid_type(Unexpected::Enum, &"Expected an asset id enum"))
 	}
+}
+
+pub fn generate_asset_id_for_parachain(asset: sp_std::boxed::Box<xcm::v3::AssetId>) -> u128 {
+	u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]))
 }
 
 #[cfg(feature = "std")]
