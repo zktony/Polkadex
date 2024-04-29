@@ -25,9 +25,7 @@
 extern crate core;
 
 use frame_support::pallet_prelude::Weight;
-use frame_support::traits::fungibles::Create;
 pub use pallet::*;
-use sp_runtime::traits::One;
 use xcm::v3::AssetId as XcmAssetId;
 
 #[cfg(feature = "runtime-benchmarks")]
@@ -74,7 +72,7 @@ pub mod pallet {
 		types::{AssetMetadata, Deposit},
 		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
 	};
-	use xcm::{VersionedMultiAsset, VersionedMultiLocation};
+	use xcm::VersionedMultiLocation;
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
