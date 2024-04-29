@@ -1712,7 +1712,7 @@ pub mod pallet {
 				.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
 
 			// if a new user is depositing, then register the user with main account as proxy
-			if !<Accounts<T>>::contains_key(&user){
+			if !<Accounts<T>>::contains_key(&user) {
 				Self::register_user(user.clone(), user.clone())?;
 			}
 
