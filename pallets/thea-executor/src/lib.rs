@@ -26,9 +26,9 @@ extern crate core;
 
 use frame_support::pallet_prelude::Weight;
 use frame_support::traits::fungibles::Create;
-use xcm::v3::AssetId as XcmAssetId;
-use sp_runtime::traits::One;
 pub use pallet::*;
+use sp_runtime::traits::One;
+use xcm::v3::AssetId as XcmAssetId;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
@@ -74,7 +74,7 @@ pub mod pallet {
 		types::{AssetMetadata, Deposit},
 		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
 	};
-	use xcm::{VersionedMultiLocation, VersionedMultiAsset};
+	use xcm::{VersionedMultiAsset, VersionedMultiLocation};
 
 	#[pallet::pallet]
 	#[pallet::without_storage_info]
@@ -477,9 +477,13 @@ pub mod pallet {
 		#[pallet::call_index(7)]
 		#[pallet::weight(< T as Config >::TheaExecWeightInfo::claim_deposit(1))]
 		#[transactional]
-		pub fn create_parachain_asset(origin: OriginFor<T>, asset: XcmAssetId, decimal: u8) -> DispatchResult {
+		pub fn create_parachain_asset(
+			origin: OriginFor<T>,
+			asset: XcmAssetId,
+			decimal: u8,
+		) -> DispatchResult {
 			T::GovernanceOrigin::ensure_origin(origin)?;
-            let asset_id = Self::generate_asset_id_for_parachain(asset);
+			let asset_id = Self::generate_asset_id_for_parachain(asset);
 			Self::resolve_create(asset_id.into(), Self::thea_account(), 1u128)?;
 			let metadata = AssetMetadata::new(decimal).ok_or(Error::<T>::InvalidDecimal)?;
 			<Metadata<T>>::insert(asset_id, metadata);
