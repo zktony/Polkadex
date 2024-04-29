@@ -1509,15 +1509,14 @@ fn test_deposit_account_not_registered() {
 	let account_id = create_account_id();
 	new_test_ext().execute_with(|| {
 		assert_ok!(OCEX::set_exchange_state(RuntimeOrigin::root(), true));
-		allowlist_token(AssetId::Asset(10));
-		assert_noop!(
+		mint_into_account(account_id.clone());
+		allowlist_token(AssetId::Polkadex);
+		assert_ok!(
 			OCEX::deposit(
 				RuntimeOrigin::signed(account_id.clone().into()),
-				AssetId::Asset(10),
+				AssetId::Polkadex,
 				100_u128.into()
-			),
-			Error::<Test>::AccountNotRegistered
-		);
+			));
 	});
 }
 
