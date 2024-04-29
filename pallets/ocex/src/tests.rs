@@ -1511,12 +1511,11 @@ fn test_deposit_account_not_registered() {
 		assert_ok!(OCEX::set_exchange_state(RuntimeOrigin::root(), true));
 		mint_into_account(account_id.clone());
 		allowlist_token(AssetId::Polkadex);
-		assert_ok!(
-			OCEX::deposit(
-				RuntimeOrigin::signed(account_id.clone().into()),
-				AssetId::Polkadex,
-				100_u128.into()
-			));
+		assert_ok!(OCEX::deposit(
+			RuntimeOrigin::signed(account_id.clone().into()),
+			AssetId::Polkadex,
+			100_u128.into()
+		));
 	});
 }
 
