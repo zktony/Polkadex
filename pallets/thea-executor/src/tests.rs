@@ -28,10 +28,9 @@ use frame_support::{
 use frame_system::EventRecord;
 use parity_scale_codec::Encode;
 use sp_core::H160;
-use sp_runtime::legacy::byte_sized_error::DispatchError;
 use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin},
-	SaturatedConversion, TokenError,
+	SaturatedConversion,
 };
 use thea_primitives::types::NewWithdraw;
 use thea_primitives::types::{AssetMetadata, Deposit};
@@ -526,13 +525,19 @@ fn test_create_parachain_asset() {
 		let multilocation =
 			MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(100)) };
 		let asset = xcm::v3::AssetId::Concrete(multilocation);
-		assert_ok!(TheaExecutor::create_parachain_asset(RuntimeOrigin::root(), asset, 10));
-		let asset_id = TheaExecutor::generate_asset_id_for_parachain(asset);
+		assert_ok!(TheaExecutor::create_parachain_asset(
+			RuntimeOrigin::root(),
+			Box::new(asset),
+			10
+		));
+		let asset_id =
+			polkadex_primitives::assets::generate_asset_id_for_parachain(Box::new(asset));
 		assert!(Assets::asset_exists(asset_id));
 		let expected_metadata = AssetMetadata::new(10);
 		let actual_metadata = <Metadata<Test>>::get(asset_id);
 		assert_eq!(expected_metadata, actual_metadata);
-		assert!(TheaExecutor::create_parachain_asset(RuntimeOrigin::root(), asset, 10).is_err());
+		assert!(TheaExecutor::create_parachain_asset(RuntimeOrigin::root(), Box::new(asset), 10)
+			.is_err());
 	})
 }
 

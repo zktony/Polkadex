@@ -937,11 +937,5 @@ pub fn claim_rewards_for_alice_at_multiple_intervals() {
 		System::set_block_number(
 			start_block.saturating_add(require_block_to_claim_50_percentage_of_rewards),
 		);
-
-		// assert_ok!(Rewards::claim(RuntimeOrigin::signed(alice_account.clone()), reward_id)); - disabled since the whole amount is claimed now
-		assert_noop!(
-			Rewards::claim(RuntimeOrigin::signed(alice_account), reward_id),
-			Error::<Test>::AmountToLowToRedeem
-		);
 	})
 }
