@@ -47,6 +47,7 @@ pub trait Resolver<
 		+ frame_support::traits::tokens::fungible::Inspect<AccountId>,
 	Others: frame_support::traits::tokens::fungibles::Mutate<AccountId>
 		+ frame_support::traits::tokens::fungibles::Inspect<AccountId>
+		+ frame_support::traits::tokens::fungibles::metadata::Mutate<AccountId>
 		+ frame_support::traits::tokens::fungibles::Create<AccountId>,
 	AssetId: Into<Others::AssetId> + sp_std::cmp::PartialEq + Copy,
 	NativeAssetId: Get<AssetId>,
@@ -149,6 +150,16 @@ pub trait Resolver<
 			Others::mint_into(asset.into(), recipeint, amount.saturated_into())?;
 		}
 		Ok(())
+	}
+
+	fn set_token_metadata(
+		asset: AssetId,
+		from: &AccountId,
+		name: sp_std::vec::Vec<u8>,
+		symbol: sp_std::vec::Vec<u8>,
+		decimal: u8,
+	) -> Result<(), DispatchError> {
+		Others::set(asset.into(), from, name, symbol, decimal)
 	}
 }
 

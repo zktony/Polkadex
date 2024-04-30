@@ -184,7 +184,8 @@ pub mod pallet {
 		/// Assets
 		type Assets: frame_support::traits::tokens::fungibles::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungibles::Create<Self::AccountId>
-			+ frame_support::traits::tokens::fungibles::Inspect<Self::AccountId>;
+			+ frame_support::traits::tokens::fungibles::Inspect<Self::AccountId>
+			+ frame_support::traits::tokens::fungibles::metadata::Mutate<Self::AccountId>;
 		/// Asset Id
 		type AssetId: Member
 			+ Parameter

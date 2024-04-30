@@ -525,9 +525,12 @@ fn test_create_parachain_asset() {
 		let multilocation =
 			MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(100)) };
 		let asset = xcm::v3::AssetId::Concrete(multilocation);
+		Balances::set_balance(&TheaExecutor::thea_account(), 1_000_000_000_000_000_000);
 		assert_ok!(TheaExecutor::create_parachain_asset(
 			RuntimeOrigin::root(),
 			Box::new(asset),
+			Default::default(),
+			Default::default(),
 			10
 		));
 		let asset_id =
@@ -536,8 +539,14 @@ fn test_create_parachain_asset() {
 		let expected_metadata = AssetMetadata::new(10);
 		let actual_metadata = <Metadata<Test>>::get(asset_id);
 		assert_eq!(expected_metadata, actual_metadata);
-		assert!(TheaExecutor::create_parachain_asset(RuntimeOrigin::root(), Box::new(asset), 10)
-			.is_err());
+		assert!(TheaExecutor::create_parachain_asset(
+			RuntimeOrigin::root(),
+			Box::new(asset),
+			Default::default(),
+			Default::default(),
+			10
+		)
+		.is_err());
 	})
 }
 
