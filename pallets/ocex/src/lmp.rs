@@ -413,7 +413,7 @@ impl<T: Config> Pallet<T> {
 				)?;
 
 				// Taker fees is in quote because they put bid order.
-				let fees = taker_fees.saturating_mul(trade.price);
+				let fees = taker_fees;
 				store_fees_paid_by_main_account_in_quote(
 					state,
 					epoch,
