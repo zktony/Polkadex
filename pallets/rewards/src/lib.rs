@@ -431,12 +431,6 @@ impl<T: Config> Pallet<T> {
 							.saturating_sub(user_reward_info.claim_amount),
 					);
 
-					//ensure the claimable amount is greater than min claimable amount
-					ensure!(
-						rewards_claimable.saturated_into::<u128>() > MIN_REWARDS_CLAIMABLE_AMOUNT,
-						Error::<T>::AmountToLowToRedeem
-					);
-
 					//remove lock
 					T::NativeCurrency::remove_lock(user_reward_info.lock_id, &user);
 

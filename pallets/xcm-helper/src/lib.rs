@@ -184,7 +184,8 @@ pub mod pallet {
 		/// Assets
 		type Assets: frame_support::traits::tokens::fungibles::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungibles::Create<Self::AccountId>
-			+ frame_support::traits::tokens::fungibles::Inspect<Self::AccountId>;
+			+ frame_support::traits::tokens::fungibles::Inspect<Self::AccountId>
+			+ frame_support::traits::tokens::fungibles::metadata::Mutate<Self::AccountId>;
 		/// Asset Id
 		type AssetId: Member
 			+ Parameter
@@ -552,7 +553,8 @@ pub mod pallet {
 				return T::NativeAssetId::get().into();
 			}
 			// If it's not native, then hash and generate the asset id
-			let asset_id = u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]));
+			let asset_id =
+				polkadex_primitives::assets::generate_asset_id_for_parachain(Box::new(asset));
 			if !<ParachainAssets<T>>::contains_key(asset_id) {
 				// Store the mapping
 				<ParachainAssets<T>>::insert(asset_id, asset);

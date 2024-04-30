@@ -26,6 +26,7 @@ extern crate core;
 
 use frame_support::pallet_prelude::Weight;
 pub use pallet::*;
+use xcm::v3::AssetId as XcmAssetId;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
@@ -89,6 +90,7 @@ pub mod pallet {
 		/// Assets Pallet
 		type Assets: frame_support::traits::tokens::fungibles::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungibles::Create<Self::AccountId>
+			+ frame_support::traits::tokens::fungibles::metadata::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungibles::Inspect<Self::AccountId>;
 		/// Asset Id
 		type AssetId: Member
@@ -468,6 +470,32 @@ pub mod pallet {
 				<ApprovedDeposits<T>>::remove(&user);
 			}
 
+			Ok(())
+		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight(< T as Config >::TheaExecWeightInfo::claim_deposit(1))]
+		#[transactional]
+		pub fn create_parachain_asset(
+			origin: OriginFor<T>,
+			asset: sp_std::boxed::Box<XcmAssetId>,
+			name: Vec<u8>,
+			symbol: Vec<u8>,
+			decimal: u8,
+		) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+			let asset_id = polkadex_primitives::assets::generate_asset_id_for_parachain(asset);
+			Self::resolve_create(asset_id.into(), Self::thea_account(), 1u128)?;
+			Self::set_token_metadata(
+				asset_id.into(),
+				&Self::thea_account(),
+				name,
+				symbol,
+				decimal,
+			)?;
+			let metadata = AssetMetadata::new(decimal).ok_or(Error::<T>::InvalidDecimal)?;
+			<Metadata<T>>::insert(asset_id, metadata);
+			Self::deposit_event(Event::<T>::AssetMetadataSet(metadata));
 			Ok(())
 		}
 	}
