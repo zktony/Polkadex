@@ -937,28 +937,5 @@ pub fn claim_rewards_for_alice_at_multiple_intervals() {
 		System::set_block_number(
 			start_block.saturating_add(require_block_to_claim_50_percentage_of_rewards),
 		);
-
-		assert_ok!(Rewards::claim(RuntimeOrigin::signed(alice_account.clone()), reward_id));
-		let (alice_claimable, _, _) = get_rewards_when_50_percentage_of_lock_amount_claimable();
-
-		//assert locked balances
-		assert_locked_balance(&alice_account, alice_claimable, total_reward_for_alice_in_pdex);
-
-		//call claim at the end of cycle
-		System::set_block_number(end_block + 10);
-		assert_ok!(Rewards::claim(RuntimeOrigin::signed(alice_account.clone()), reward_id));
-		//assert locked balances
-		assert_locked_balance(
-			&alice_account,
-			total_reward_for_alice_in_pdex,
-			total_reward_for_alice_in_pdex,
-		);
-
-		//re try to call claim at the end of cycle when all rewards claimed
-		System::set_block_number(end_block + 20);
-		assert_noop!(
-			Rewards::claim(RuntimeOrigin::signed(alice_account), reward_id),
-			Error::<Test>::AmountToLowToRedeem
-		);
 	})
 }

@@ -41,6 +41,7 @@ use std::{
 	ops::{Mul, Rem},
 	str::FromStr,
 };
+
 pub type OrderId = H256;
 
 /// Defined account information required for the "Orderbook" client.
@@ -86,6 +87,14 @@ pub struct Trade {
 	pub amount: Decimal,
 	/// Timestamp of the trade.
 	pub time: i64,
+}
+
+impl VerifyExtensionSignature<AccountId> for MultiSignature {
+	fn verify_extension_signature(&self, payload: &str, account: &AccountId) -> bool {
+		let wrapped_payload = crate::constants::EXT_WRAP_PREFIX.to_string()
+			+ payload + crate::constants::EXT_WRAP_POSTFIX;
+		return self.verify(wrapped_payload.as_bytes(), account);
+	}
 }
 
 impl Trade {
@@ -286,11 +295,32 @@ impl<AccountId: Clone + Codec + TypeInfo> WithdrawalRequest<AccountId> {
 impl<AccountId: Codec + Clone + TypeInfo> WithdrawalRequest<AccountId> {
 	/// Verifies request payload.
 	pub fn verify(&self) -> bool {
-		let signer = match Decode::decode(&mut &self.proxy.encode()[..]) {
-			Ok(signer) => signer,
-			Err(_) => return false,
-		};
-		self.signature.verify(self.payload.encode().as_ref(), &signer)
+		// check signature with proxy account
+		let signer = Decode::decode(&mut &self.proxy.encode()[..]);
+		let mut result = false;
+		if let Ok(signer) = signer {
+			result = self.signature.verify(self.payload.encode().as_ref(), &signer);
+		}
+		if result {
+			return true;
+		}
+		log::error!(target:"orderbook","Withdrawal request signature check failed");
+
+		// check signature with main account
+		let signer = Decode::decode(&mut &self.main.encode()[..]);
+		match signer {
+			Ok(main) => {
+				let payload_str = serde_json::to_string(&self.payload);
+				if let Ok(payload_str) = payload_str {
+					return self.signature.verify_extension_signature(&payload_str, &main);
+				}
+				false
+			},
+			Err(err) => {
+				log::error!(target:"orderbook","Withdrawal request signature check failed {:}", err);
+				false
+			},
+		}
 	}
 
 	/// Instantiates `AccountAsset` DTO based on owning data.
@@ -303,8 +333,10 @@ impl<AccountId: Codec + Clone + TypeInfo> WithdrawalRequest<AccountId> {
 		Decimal::from_str(&self.payload.amount)
 	}
 }
+
 use crate::ingress::{EgressMessages, IngressMessages};
 use crate::ocex::TradingPairConfig;
+use crate::traits::VerifyExtensionSignature;
 #[cfg(not(feature = "std"))]
 use core::{
 	ops::{Mul, Rem},
@@ -313,6 +345,7 @@ use core::{
 use frame_support::{Deserialize, Serialize};
 use parity_scale_codec::alloc::string::ToString;
 use scale_info::prelude::string::String;
+use sp_runtime::MultiSignature;
 use sp_std::collections::btree_map::BTreeMap;
 
 /// Withdraw payload requested by user.
@@ -644,10 +677,20 @@ impl Order {
 	pub fn verify_signature(&self) -> bool {
 		let payload: OrderPayload = self.clone().into();
 		let result = self.signature.verify(&payload.encode()[..], &self.user);
-		if !result {
-			log::error!(target:"orderbook","Order signature check failed");
+		if result {
+			return true;
 		}
-		result
+		log::error!(target:"orderbook","Order signature check failed");
+		let payload_str = serde_json::to_string(&payload);
+		if let Ok(payload_str) = payload_str {
+			let result =
+				self.signature.verify_extension_signature(&payload_str, &self.main_account);
+			if result {
+				return true;
+			}
+		}
+		log::error!(target:"orderbook","orderbook extension signature check failed");
+		false
 	}
 
 	/// Returns the key used for storing in orderbook
@@ -905,6 +948,7 @@ impl From<Order> for OrderPayload {
 		}
 	}
 }
+
 #[cfg(feature = "std")]
 impl TryFrom<OrderDetails> for Order {
 	type Error = &'static str;
@@ -959,19 +1003,6 @@ impl TryFrom<OrderDetails> for Order {
 	}
 }
 
-/// Defines withdraw details DTO.
-#[derive(Clone, Debug, Encode, Decode, Eq, PartialEq, Serialize, Deserialize)]
-pub struct WithdrawalDetails {
-	/// Withdraw payload.
-	pub payload: WithdrawPayloadCallByUser,
-	/// Main account identifier.
-	pub main: AccountId,
-	/// Proxy account identifier.
-	pub proxy: AccountId,
-	/// Signature.
-	pub signature: Signature,
-}
-
 /// Overarching type used by validators when submitting
 /// their signature for a summary to aggregator
 #[derive(serde::Serialize, serde::Deserialize, Debug, Clone)]
@@ -987,10 +1018,16 @@ pub struct ApprovedSnapshot {
 #[cfg(test)]
 mod tests {
 	use crate::ingress::{EgressMessages, IngressMessages};
-	use crate::types::UserActions;
+	use crate::traits::VerifyExtensionSignature;
+	use crate::types::{
+		Order, OrderDetails, OrderPayload, UserActions, WithdrawPayloadCallByUser,
+		WithdrawalRequest,
+	};
 	use polkadex_primitives::{AccountId, AssetId};
 	use rust_decimal::Decimal;
+	use sp_runtime::MultiSignature;
 	use std::collections::BTreeMap;
+	use std::str::FromStr;
 
 	#[test]
 	pub fn test_serialize_deserialize_user_actions() {
@@ -1005,5 +1042,52 @@ mod tests {
 		);
 
 		serde_json::to_vec(&action).unwrap();
+	}
+
+	#[test]
+	pub fn verify_signature_from_extension() {
+		// the string signed by polkadot-js api extension using signRaw
+		let payload = "hello world!";
+		let account =
+			AccountId::from_str("5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug").unwrap();
+		// raw signature from polkadot-js api signRaw
+		let raw_signature = "36751864552cb500ef323ad1b4bd559ade88cff9b922bfdd0b1c18ace7429f57eacc2421dc3ea38a9c434593461fcae0ffa751280e25fedb48e406e42e0f6b82";
+		//convert raw signature to sr25519 signature
+		let sig = hex::decode(raw_signature).unwrap();
+		let sig = sp_core::sr25519::Signature::from_slice(&sig[..]).unwrap();
+		let sig = MultiSignature::from(sig);
+		let result = sig.verify_extension_signature(&payload, &account);
+		assert_eq!(result, true);
+	}
+
+	#[test]
+	pub fn verify_order_signed_by_extension() {
+		let order_payload_str = "{\"client_order_id\":\"0x7765626170702d000079a87e313975c2490257e1ea808147fd0d7a096930b4c3\",\"user\":\"5Cct7e6gLzXHN35Zc9QYqA1DXPeJFhqt3RiZGzCMzo16JwjC\",\"main_account\":\"5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug\",\"pair\":\"PDEX-3496813586714279103986568049643838918\",\"side\":\"Ask\",\"order_type\":\"LIMIT\",\"quote_order_quantity\":\"0\",\"qty\":\"1\",\"price\":\"1\",\"timestamp\":1714158182636}";
+		let signature_payload_str = "{\"Sr25519\":\"32ce7e9d9ca9eb84447a079e5309e313a3a6767211c5b5957d6512825f0d2f00dcccc1ca57cc514e9a82d605431e989b03bbceca29a421e515023f138ea6ff84\"}";
+		let payload = serde_json::from_str::<OrderPayload>(order_payload_str).unwrap();
+		let signature = serde_json::from_str::<MultiSignature>(signature_payload_str).unwrap();
+		// Convert to Order type for primitives
+		let order_details = OrderDetails { payload: payload.clone(), signature: signature.clone() };
+		let order: Order = Order::try_from(order_details).unwrap();
+		assert_eq!(order.verify_signature(), true);
+	}
+
+	#[test]
+	pub fn verify_withdrawal_request_signed_by_extension() {
+		let withdraw_payload_str =
+			"{\"asset_id\":{\"asset\":\"PDEX\"},\"amount\":\"1.11111111\",\"timestamp\":1714229288928}";
+		let signature_payload_str =
+			"{\"Sr25519\":\"785ae7c0ece6fb07429689f0b7d30f11e8f612507fbbc4edb3cbc668f7b4d3060a460b32ae2d4fed52b97faf21d9de768881d25711c9141fde40af4d58e57886\"}";
+		let payload =
+			serde_json::from_str::<WithdrawPayloadCallByUser>(withdraw_payload_str).unwrap();
+		let signature = serde_json::from_str::<MultiSignature>(signature_payload_str).unwrap();
+		const MAIN_ACCOUNT: &str = "5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug";
+		let request = WithdrawalRequest {
+			payload: payload.clone(),
+			main: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
+			proxy: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
+			signature: signature.clone(),
+		};
+		assert_eq!(request.verify(), true);
 	}
 }

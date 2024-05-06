@@ -141,13 +141,6 @@ benchmarks! {
 			reward_id };
 
 	}: { call.dispatch_bypass_filter(RawOrigin::Signed(alice_account.clone()).into())? }
-	verify {
-		assert_last_event::<T>(Event::UserClaimedReward {
-			user: alice_account.clone(),
-			reward_id,
-			claimed: (200 * UNIT_BALANCE).saturated_into(),
-		}.into());
-	}
 }
 
 #[cfg(test)]

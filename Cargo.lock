@@ -6034,6 +6034,7 @@ dependencies = [
  "anyhow",
  "chrono",
  "frame-support",
+ "hex",
  "log",
  "parity-scale-codec",
  "polkadex-primitives",
@@ -7974,6 +7975,7 @@ dependencies = [
  "sp-core",
  "sp-runtime",
  "sp-std",
+ "staging-xcm",
 ]
 
 [[package]]

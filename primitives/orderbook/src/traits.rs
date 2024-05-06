@@ -111,3 +111,7 @@ impl<AccountId> LiquidityMiningCrowdSourcePallet<AccountId> for () {
 
 	fn stop_accepting_lmp_withdrawals(_epoch: u16) {}
 }
+
+pub trait VerifyExtensionSignature<AccountId> {
+	fn verify_extension_signature(&self, payload: &str, account_id: &AccountId) -> bool;
+}

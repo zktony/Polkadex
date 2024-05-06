@@ -20,6 +20,7 @@ use crate::{
 	mock::{new_test_ext, Assets, Test, *},
 	PendingWithdrawals, WithdrawalFees, *,
 };
+use frame_support::traits::fungibles::Inspect;
 use frame_support::{
 	assert_noop, assert_ok,
 	traits::{fungible::Mutate as FungibleMutate, fungibles::Mutate as FungiblesMutate},
@@ -31,7 +32,9 @@ use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin},
 	SaturatedConversion,
 };
-use thea_primitives::types::{AssetMetadata, Deposit, Withdraw};
+use thea_primitives::types::NewWithdraw;
+use thea_primitives::types::{AssetMetadata, Deposit};
+use xcm::v3::Junction;
 use xcm::{opaque::lts::Junctions, v3::MultiLocation, VersionedMultiLocation};
 
 fn assert_last_event<T: crate::Config>(generic_event: <T as crate::Config>::RuntimeEvent) {
@@ -93,11 +96,13 @@ fn test_transfer_native_asset() {
 		));
 		// Verify
 		let pending_withdrawal = <PendingWithdrawals<Test>>::get(1);
-		let approved_withdraw = Withdraw {
+		let approved_withdraw = NewWithdraw {
 			id: Vec::from([179, 96, 16, 235, 40, 92, 21, 74, 140, 214]),
 			asset_id,
 			amount: 10_000_000_000_000u128,
 			destination: vec![1; 32],
+			fee_asset_id: None,
+			fee_amount: None,
 			is_blocked: false,
 			extra: vec![],
 		};
@@ -208,6 +213,8 @@ fn test_parachain_withdraw_full() {
 				u128::MAX,
 				1_000_000_000,
 				beneficiary.clone(),
+				None,
+				None,
 				false,
 				false
 			),
@@ -219,6 +226,8 @@ fn test_parachain_withdraw_full() {
 				u128::MAX,
 				1_000_000_000,
 				beneficiary.clone(),
+				None,
+				None,
 				false,
 				false
 			),
@@ -231,6 +240,8 @@ fn test_parachain_withdraw_full() {
 				u128::MAX,
 				1_000_000_000,
 				beneficiary.clone(),
+				None,
+				None,
 				false,
 				false
 			),
@@ -243,6 +254,8 @@ fn test_parachain_withdraw_full() {
 				asset_id,
 				1_000_000_000,
 				beneficiary.clone(),
+				None,
+				None,
 				false,
 				false
 			),
@@ -254,6 +267,8 @@ fn test_parachain_withdraw_full() {
 			asset_id,
 			1_000_000_000,
 			beneficiary.clone(),
+			None,
+			None,
 			false,
 			false
 		));
@@ -501,6 +516,37 @@ fn test_claim_deposit_returns_asset_not_registered() {
 			TheaExecutor::do_deposit(1, &vec![deposit].encode()),
 			crate::Error::<Test>::AssetNotRegistered
 		);
+	})
+}
+
+#[test]
+fn test_create_parachain_asset() {
+	new_test_ext().execute_with(|| {
+		let multilocation =
+			MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(100)) };
+		let asset = xcm::v3::AssetId::Concrete(multilocation);
+		Balances::set_balance(&TheaExecutor::thea_account(), 1_000_000_000_000_000_000);
+		assert_ok!(TheaExecutor::create_parachain_asset(
+			RuntimeOrigin::root(),
+			Box::new(asset),
+			Default::default(),
+			Default::default(),
+			10
+		));
+		let asset_id =
+			polkadex_primitives::assets::generate_asset_id_for_parachain(Box::new(asset));
+		assert!(Assets::asset_exists(asset_id));
+		let expected_metadata = AssetMetadata::new(10);
+		let actual_metadata = <Metadata<Test>>::get(asset_id);
+		assert_eq!(expected_metadata, actual_metadata);
+		assert!(TheaExecutor::create_parachain_asset(
+			RuntimeOrigin::root(),
+			Box::new(asset),
+			Default::default(),
+			Default::default(),
+			10
+		)
+		.is_err());
 	})
 }
 

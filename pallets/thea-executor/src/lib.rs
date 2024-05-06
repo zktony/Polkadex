@@ -26,6 +26,7 @@ extern crate core;
 
 use frame_support::pallet_prelude::Weight;
 pub use pallet::*;
+use xcm::v3::AssetId as XcmAssetId;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
@@ -46,6 +47,7 @@ pub trait TheaExecutorWeightInfo {
 	fn claim_deposit(_r: u32) -> Weight;
 }
 
+#[allow(clippy::too_many_arguments)]
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
@@ -65,8 +67,9 @@ pub mod pallet {
 	use sp_core::{H160, H256};
 	use sp_runtime::{traits::AccountIdConversion, Saturating};
 	use sp_std::vec::Vec;
+	use thea_primitives::types::NewWithdraw;
 	use thea_primitives::{
-		types::{AssetMetadata, Deposit, Withdraw},
+		types::{AssetMetadata, Deposit},
 		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
 	};
 	use xcm::VersionedMultiLocation;
@@ -87,6 +90,7 @@ pub mod pallet {
 		/// Assets Pallet
 		type Assets: frame_support::traits::tokens::fungibles::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungibles::Create<Self::AccountId>
+			+ frame_support::traits::tokens::fungibles::metadata::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungibles::Inspect<Self::AccountId>;
 		/// Asset Id
 		type AssetId: Member
@@ -141,7 +145,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn pending_withdrawals)]
 	pub(super) type PendingWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, Network, Vec<Withdraw>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, Network, Vec<NewWithdraw>, ValueQuery>;
 
 	/// Withdrawal Fees for each network
 	#[pallet::storage]
@@ -158,7 +162,7 @@ pub mod pallet {
 		BlockNumberFor<T>,
 		Blake2_128Concat,
 		Network,
-		Vec<Withdraw>,
+		Vec<NewWithdraw>,
 		ValueQuery,
 	>;
 
@@ -190,7 +194,7 @@ pub mod pallet {
 		/// Withdrawal Ready (Network id )
 		WithdrawalReady(Network),
 		/// Withdrawal Failed ( Network ,Vec<Withdrawal>)
-		WithdrawalFailed(Network, Vec<Withdraw>),
+		WithdrawalFailed(Network, Vec<NewWithdraw>),
 		/// Thea Public Key Updated ( network, new session id )
 		TheaKeyUpdated(Network, u32),
 		/// Withdrawal Fee Set (NetworkId, Amount)
@@ -220,6 +224,8 @@ pub mod pallet {
 		WithdrawalFeeConfigNotFound,
 		/// Asset Not Registered
 		AssetNotRegistered,
+		/// Fee Asset Not Registered
+		FeeAssetNotRegistered,
 		/// Amount cannot be Zero
 		AmountCannotBeZero,
 		/// Failed To Handle Parachain Deposit
@@ -289,6 +295,8 @@ pub mod pallet {
 				asset_id,
 				amount,
 				beneficiary,
+				None,
+				None,
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
@@ -323,6 +331,8 @@ pub mod pallet {
 			asset_id: u128,
 			amount: u128,
 			beneficiary: sp_std::boxed::Box<VersionedMultiLocation>,
+			fee_asset_id: Option<u128>,
+			fee_amount: Option<u128>,
 			pay_for_remaining: bool,
 			pay_with_tokens: bool,
 		) -> DispatchResult {
@@ -333,6 +343,8 @@ pub mod pallet {
 				asset_id,
 				amount,
 				beneficiary.encode(),
+				fee_asset_id,
+				fee_amount,
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
@@ -410,6 +422,8 @@ pub mod pallet {
 				asset_id,
 				amount,
 				beneficiary.encode(),
+				None,
+				None,
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
@@ -458,6 +472,32 @@ pub mod pallet {
 
 			Ok(())
 		}
+
+		#[pallet::call_index(7)]
+		#[pallet::weight(< T as Config >::TheaExecWeightInfo::claim_deposit(1))]
+		#[transactional]
+		pub fn create_parachain_asset(
+			origin: OriginFor<T>,
+			asset: sp_std::boxed::Box<XcmAssetId>,
+			name: Vec<u8>,
+			symbol: Vec<u8>,
+			decimal: u8,
+		) -> DispatchResult {
+			T::GovernanceOrigin::ensure_origin(origin)?;
+			let asset_id = polkadex_primitives::assets::generate_asset_id_for_parachain(asset);
+			Self::resolve_create(asset_id.into(), Self::thea_account(), 1u128)?;
+			Self::set_token_metadata(
+				asset_id.into(),
+				&Self::thea_account(),
+				name,
+				symbol,
+				decimal,
+			)?;
+			let metadata = AssetMetadata::new(decimal).ok_or(Error::<T>::InvalidDecimal)?;
+			<Metadata<T>>::insert(asset_id, metadata);
+			Self::deposit_event(Event::<T>::AssetMetadataSet(metadata));
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Pallet<T> {
@@ -480,6 +520,8 @@ pub mod pallet {
 			asset_id: u128,
 			mut amount: u128,
 			beneficiary: Vec<u8>,
+			fee_asset_id: Option<u128>,
+			fee_amount: Option<u128>,
 			pay_for_remaining: bool,
 			network: Network,
 			pay_with_tokens: bool,
@@ -488,6 +530,10 @@ pub mod pallet {
 			ensure!(network != 0, Error::<T>::WrongNetwork);
 			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(network);
 			let metadata = <Metadata<T>>::get(asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			if let Some(fee_asset_id) = fee_asset_id {
+				let _metadata = <crate::pallet::Metadata<T>>::get(fee_asset_id)
+					.ok_or(Error::<T>::FeeAssetNotRegistered)?;
+			}
 			ensure!(
 				pending_withdrawals.len() < T::WithdrawalSize::get() as usize,
 				Error::<T>::WithdrawalNotAllowed
@@ -535,11 +581,22 @@ pub mod pallet {
 			// Withdraw assets
 			Self::resolver_withdraw(asset_id.into(), amount, &user, Self::thea_account())?;
 
-			let mut withdraw = Withdraw {
+			if let (Some(fee_asset_id), Some(fee_amount)) = (fee_asset_id, fee_amount) {
+				Self::resolver_withdraw(
+					fee_asset_id.into(),
+					fee_amount,
+					&user,
+					Self::thea_account(),
+				)?;
+			}
+
+			let mut withdraw = NewWithdraw {
 				id: Self::new_random_id(),
 				asset_id,
 				amount,
 				destination: beneficiary.clone(),
+				fee_asset_id,
+				fee_amount,
 				is_blocked: false,
 				extra: Vec::new(),
 			};
@@ -555,6 +612,12 @@ pub mod pallet {
 
 			// Convert back to origin decimals
 			withdraw.amount = metadata.convert_from_native_decimals(amount);
+
+			if let (Some(fee_asset_id), Some(fee_amount)) = (fee_asset_id, fee_amount) {
+				let metadata = <crate::pallet::Metadata<T>>::get(fee_asset_id)
+					.ok_or(Error::<T>::FeeAssetNotRegistered)?;
+				withdraw.fee_amount = Some(metadata.convert_from_native_decimals(fee_amount));
+			}
 
 			pending_withdrawals.push(withdraw);
 

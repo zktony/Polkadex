@@ -1023,28 +1023,28 @@ pub mod pallet {
 			Ok(())
 		}
 
-		/// Place Bid
-		#[pallet::call_index(22)]
-		#[pallet::weight(< T as Config >::WeightInfo::place_bid())]
-		pub fn place_bid(origin: OriginFor<T>, bid_amount: BalanceOf<T>) -> DispatchResult {
-			let bidder = ensure_signed(origin)?;
-			let mut auction_info = <Auction<T>>::get().ok_or(Error::<T>::AuctionNotFound)?;
-			ensure!(bid_amount > Zero::zero(), Error::<T>::InvalidBidAmount);
-			ensure!(bid_amount > auction_info.highest_bid, Error::<T>::InvalidBidAmount);
-			ensure!(
-				T::NativeCurrency::can_reserve(&bidder, bid_amount),
-				Error::<T>::InsufficientBalance
-			);
-			T::NativeCurrency::reserve(&bidder, bid_amount)?;
-			if let Some(old_bidder) = auction_info.highest_bidder {
-				// Un-reserve the old bidder
-				T::NativeCurrency::unreserve(&old_bidder, auction_info.highest_bid);
-			}
-			auction_info.highest_bid = bid_amount;
-			auction_info.highest_bidder = Some(bidder);
-			<Auction<T>>::put(auction_info);
-			Ok(())
-		}
+		// /// Place Bid TODO: Enable it after frontend is ready.
+		// #[pallet::call_index(22)]
+		// #[pallet::weight(< T as Config >::WeightInfo::place_bid())]
+		// pub fn place_bid(origin: OriginFor<T>, bid_amount: BalanceOf<T>) -> DispatchResult {
+		// 	let bidder = ensure_signed(origin)?;
+		// 	let mut auction_info = <Auction<T>>::get().ok_or(Error::<T>::AuctionNotFound)?;
+		// 	ensure!(bid_amount > Zero::zero(), Error::<T>::InvalidBidAmount);
+		// 	ensure!(bid_amount > auction_info.highest_bid, Error::<T>::InvalidBidAmount);
+		// 	ensure!(
+		// 		T::NativeCurrency::can_reserve(&bidder, bid_amount),
+		// 		Error::<T>::InsufficientBalance
+		// 	);
+		// 	T::NativeCurrency::reserve(&bidder, bid_amount)?;
+		// 	if let Some(old_bidder) = auction_info.highest_bidder {
+		// 		// Un-reserve the old bidder
+		// 		T::NativeCurrency::unreserve(&old_bidder, auction_info.highest_bid);
+		// 	}
+		// 	auction_info.highest_bid = bid_amount;
+		// 	auction_info.highest_bidder = Some(bidder);
+		// 	<Auction<T>>::put(auction_info);
+		// 	Ok(())
+		// }
 
 		/// Starts a new liquidity mining epoch
 		#[pallet::call_index(23)]
@@ -1706,12 +1706,16 @@ pub mod pallet {
 		) -> DispatchResult {
 			ensure!(Self::orderbook_operational_state(), Error::<T>::ExchangeNotOperational);
 			ensure!(<AllowlistedToken<T>>::get().contains(&asset), Error::<T>::TokenNotAllowlisted);
-			// Check if account is registered
-			ensure!(<Accounts<T>>::contains_key(&user), Error::<T>::AccountNotRegistered);
 			ensure!(amount.saturated_into::<u128>() <= DEPOSIT_MAX, Error::<T>::AmountOverflow);
 			let converted_amount = Decimal::from(amount.saturated_into::<u128>())
 				.checked_div(Decimal::from(UNIT_BALANCE))
 				.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
+
+			// if a new user is depositing, then register the user with main account as proxy
+			if !<Accounts<T>>::contains_key(&user) {
+				Self::register_user(user.clone(), user.clone())?;
+			}
+
 			Self::transfer_asset(&user, &Self::get_pallet_account(), amount, asset)?;
 			// Get Storage Map Value
 			if let Some(expected_total_amount) =
@@ -2363,10 +2367,9 @@ impl<T: Config> sp_application_crypto::BoundToRuntimeAppPublic for Pallet<T> {
 impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	type Key = T::AuthorityId;
 
-	fn on_genesis_session<'a, I: 'a>(authorities: I)
-	where
-		I: Iterator<Item = (&'a T::AccountId, Self::Key)>,
-	{
+	fn on_genesis_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, Self::Key)>>(
+		authorities: I,
+	) {
 		let authorities = authorities.map(|(_, k)| k).collect::<Vec<_>>();
 		<Authorities<T>>::insert(
 			GENESIS_AUTHORITY_SET_ID,
@@ -2374,10 +2377,11 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 		);
 	}
 
-	fn on_new_session<'a, I: 'a>(_changed: bool, authorities: I, queued_authorities: I)
-	where
-		I: Iterator<Item = (&'a T::AccountId, Self::Key)>,
-	{
+	fn on_new_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, Self::Key)>>(
+		_changed: bool,
+		authorities: I,
+		queued_authorities: I,
+	) {
 		let next_authorities = authorities.map(|(_, k)| k).collect::<Vec<_>>();
 		let next_queued_authorities = queued_authorities.map(|(_, k)| k).collect::<Vec<_>>();
 

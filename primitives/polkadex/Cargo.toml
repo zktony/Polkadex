@@ -22,6 +22,7 @@ rust_decimal = { git = "https://github.com/Polkadex-Substrate/rust-decimal.git",
   "scale-codec",
   "serde",
 ], default-features = false }
+xcm = { workspace = true, default-features = false }
 
 [dev-dependencies]
 pretty_assertions = "1.2.1"
@@ -45,5 +46,6 @@ std = [
   "sp-runtime/std",
   "rust_decimal/std",
   "rust_decimal/serde",
+  "xcm/std"
 ]
 full_crypto = ['sp-core/full_crypto']
