@@ -2367,8 +2367,9 @@ impl<T: Config> sp_application_crypto::BoundToRuntimeAppPublic for Pallet<T> {
 impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	type Key = T::AuthorityId;
 
-	fn on_genesis_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, Self::Key)>>(authorities: I)
-	{
+	fn on_genesis_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, Self::Key)>>(
+		authorities: I,
+	) {
 		let authorities = authorities.map(|(_, k)| k).collect::<Vec<_>>();
 		<Authorities<T>>::insert(
 			GENESIS_AUTHORITY_SET_ID,
@@ -2376,8 +2377,11 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 		);
 	}
 
-	fn on_new_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, Self::Key)>>(_changed: bool, authorities: I, queued_authorities: I)
-	{
+	fn on_new_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, Self::Key)>>(
+		_changed: bool,
+		authorities: I,
+		queued_authorities: I,
+	) {
 		let next_authorities = authorities.map(|(_, k)| k).collect::<Vec<_>>();
 		let next_queued_authorities = queued_authorities.map(|(_, k)| k).collect::<Vec<_>>();
 
