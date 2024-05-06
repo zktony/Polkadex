@@ -49,8 +49,9 @@ members = [
   "pallets/xcm-helper",
   "misc/load-testing",
   "misc/crowdloan-verifier",
+  "xcm-simulator",
 ]
-exclude = ["scripts/check-off-on-deviation"]
+exclude = ["scripts/check-off-on-deviation", "example"]
 default-members = [
   "client",
   "nodes/mainnet",
@@ -73,6 +74,7 @@ default-members = [
   "pallets/rewards/rpc",
   "pallets/rewards/rpc/runtime-api",
   "rpc/swap",
+  "xcm-simulator"
 ]
 
 [workspace.dependencies]
