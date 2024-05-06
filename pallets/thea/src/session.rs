@@ -28,9 +28,7 @@ impl<T: Config> sp_runtime::BoundToRuntimeAppPublic for Pallet<T> {
 impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	type Key = T::TheaId;
 
-	fn on_genesis_session<'a, I: 'a>(validators: I)
-	where
-		I: Iterator<Item = (&'a T::AccountId, T::TheaId)>,
+	fn on_genesis_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, T::TheaId)>>(validators: I)
 	{
 		let authorities = validators.map(|(_, k)| k).collect::<Vec<_>>();
 		// we panic here as runtime maintainers can simply reconfigure genesis and restart
@@ -38,9 +36,7 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 		Self::initialize_authorities(&authorities).expect("Authorities vec too big");
 	}
 
-	fn on_new_session<'a, I: 'a>(_changed: bool, validators: I, queued_validators: I)
-	where
-		I: Iterator<Item = (&'a T::AccountId, T::TheaId)>,
+	fn on_new_session<'a, I: 'a + Iterator<Item = (&'a T::AccountId, T::TheaId)>>(_changed: bool, validators: I, queued_validators: I)
 	{
 		// A new thea message will be sent on session changes when queued != next.
 		let next_authorities = validators.map(|(_, k)| k).collect::<Vec<_>>();
