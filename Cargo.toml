@@ -49,8 +49,7 @@ members = [
   "pallets/xcm-helper",
   "misc/load-testing",
   "misc/crowdloan-verifier",
-  "xcm-simulator",
-  "example"
+  "xcm-simulator"
 ]
 exclude = ["scripts/check-off-on-deviation"]
 default-members = [
@@ -75,8 +74,7 @@ default-members = [
   "pallets/rewards/rpc",
   "pallets/rewards/rpc/runtime-api",
   "rpc/swap",
-  "xcm-simulator",
-  "example"
+  "xcm-simulator"
 ]
 
 [workspace.dependencies]
