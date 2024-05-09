@@ -137,7 +137,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, MultiLocation> for ForeignCreators {
 	) -> sp_std::result::Result<Self::Success, RuntimeOrigin> {
 		let origin_location = pallet_xcm::EnsureXcm::<Everything>::try_origin(o.clone())?;
 		if !a.starts_with(&origin_location) {
-			return Err(o)
+			return Err(o);
 		}
 		SovereignAccountOf::convert(origin_location).map_err(|_| o)
 	}
@@ -571,7 +571,7 @@ where
 				if WH::check_whitelisted_token(foreign_currency_asset_id) {
 					(payment, 0u128)
 				} else {
-					return Err(XcmError::Trap(1004))
+					return Err(XcmError::Trap(1004));
 				};
 			self.weight = self.weight.saturating_add(weight);
 			if let Some((old_asset_location, _)) = self.asset_location_and_units_per_second {

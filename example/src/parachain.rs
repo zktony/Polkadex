@@ -156,7 +156,7 @@ impl EnsureOriginWithArg<RuntimeOrigin, MultiLocation> for ForeignCreators {
 	) -> sp_std::result::Result<Self::Success, RuntimeOrigin> {
 		let origin_location = pallet_xcm::EnsureXcm::<Everything>::try_origin(o.clone())?;
 		if !a.starts_with(&origin_location) {
-			return Err(o)
+			return Err(o);
 		}
 		SovereignAccountOf::convert_location(&origin_location).ok_or(o)
 	}
