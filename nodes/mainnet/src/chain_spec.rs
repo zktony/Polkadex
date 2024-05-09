@@ -74,8 +74,7 @@ pub(crate) fn session_keys(
 }
 
 fn udon_testnet_config_genesis() -> RuntimeGenesisConfig {
-	let seed =
-		"owner word vocal dose decline sunset battle example forget excite gentle waste//";
+	let seed = "owner word vocal dose decline sunset battle example forget excite gentle waste//";
 	let mut initial_authorities: Vec<(
 		AccountId,
 		AccountId,
