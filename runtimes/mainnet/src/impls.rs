@@ -223,7 +223,7 @@ mod multiplier_tests {
 	fn min_change_per_day() {
 		run_with_system_weight(max_normal(), || {
 			let mut fm = Multiplier::one();
-			// See the xcm-simulator in the doc of `TargetedFeeAdjustment`. are at least 0.234, hence
+			// See the example in the doc of `TargetedFeeAdjustment`. are at least 0.234, hence
 			// `fm > 1.234`.
 			for _ in 0..DAYS {
 				let next = runtime_multiplier_update(fm);
