@@ -252,6 +252,7 @@ impl Config for XcmConfig {
 }
 
 #[frame_support::pallet]
+#[allow(unused_imports)]
 pub mod mock_msg_queue {
 	use super::*;
 	use frame_support::pallet_prelude::*;
@@ -262,7 +263,7 @@ pub mod mock_msg_queue {
 		type XcmExecutor: ExecuteXcm<Self::RuntimeCall>;
 	}
 
-	#[pallet::call]
+	// #[pallet::call]
 	impl<T: Config> Pallet<T> {}
 
 	#[pallet::pallet]
