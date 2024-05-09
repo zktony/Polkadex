@@ -7311,6 +7311,7 @@ name = "pallet-uniques"
 version = "4.0.0-dev"
 source = "git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0#c8d2251cafadc108ba2f1f8a3208dc547ff38901"
 dependencies = [
+ "frame-benchmarking",
  "frame-support",
  "frame-system",
  "log",
@@ -15342,20 +15343,20 @@ dependencies = [
 
 [[package]]
 name = "xcm-simulator"
-version = "0.1.0"
+version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
- "orml-traits",
- "orml-xcm-support",
- "orml-xtokens",
+ "log",
  "pallet-balances",
  "pallet-message-queue",
  "pallet-uniques",
  "pallet-xcm",
+ "parity-scale-codec",
  "polkadot-core-primitives",
  "polkadot-parachain-primitives",
  "polkadot-runtime-parachains",
+ "scale-info",
  "sp-core",
  "sp-io",
  "sp-runtime",
@@ -15364,11 +15365,7 @@ dependencies = [
  "staging-xcm",
  "staging-xcm-builder",
  "staging-xcm-executor",
- "thea",
- "thea-message-handler",
- "thea-primitives",
- "xcm-helper",
- "xcm-simulator 1.0.0",
+ "xcm-simulator 1.0.0 (git+https://github.com/paritytech/polkadot-sdk?branch=release-polkadot-v1.1.0)",
 ]
 
 [[package]]
