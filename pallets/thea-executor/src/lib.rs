@@ -67,7 +67,7 @@ pub mod pallet {
 	use sp_core::{H160, H256};
 	use sp_runtime::{traits::AccountIdConversion, Saturating};
 	use sp_std::vec::Vec;
-	use thea_primitives::types::NewWithdraw;
+	use thea_primitives::types::Withdraw;
 	use thea_primitives::{
 		types::{AssetMetadata, Deposit},
 		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
@@ -145,7 +145,7 @@ pub mod pallet {
 	#[pallet::storage]
 	#[pallet::getter(fn pending_withdrawals)]
 	pub(super) type PendingWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, Network, Vec<NewWithdraw>, ValueQuery>;
+		StorageMap<_, Blake2_128Concat, Network, Vec<Withdraw>, ValueQuery>;
 
 	/// Withdrawal Fees for each network
 	#[pallet::storage]
@@ -162,7 +162,7 @@ pub mod pallet {
 		BlockNumberFor<T>,
 		Blake2_128Concat,
 		Network,
-		Vec<NewWithdraw>,
+		Vec<Withdraw>,
 		ValueQuery,
 	>;
 
@@ -194,7 +194,7 @@ pub mod pallet {
 		/// Withdrawal Ready (Network id )
 		WithdrawalReady(Network),
 		/// Withdrawal Failed ( Network ,Vec<Withdrawal>)
-		WithdrawalFailed(Network, Vec<NewWithdraw>),
+		WithdrawalFailed(Network, Vec<Withdraw>),
 		/// Thea Public Key Updated ( network, new session id )
 		TheaKeyUpdated(Network, u32),
 		/// Withdrawal Fee Set (NetworkId, Amount)
@@ -590,7 +590,7 @@ pub mod pallet {
 				)?;
 			}
 
-			let mut withdraw = NewWithdraw {
+			let mut withdraw = Withdraw {
 				id: Self::new_random_id(),
 				asset_id,
 				amount,

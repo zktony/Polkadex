@@ -138,7 +138,7 @@ pub mod pallet {
 	use crate::MAXIMUM_BLOCK_WEIGHT;
 	use sp_std::{boxed::Box, vec, vec::Vec};
 	use thea_primitives::{
-		types::{Deposit, NewWithdraw},
+		types::{Deposit, Withdraw},
 		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
 	use xcm::{
@@ -223,14 +223,14 @@ pub mod pallet {
 	/// Pending Withdrawals
 	#[pallet::storage]
 	#[pallet::getter(fn get_new_pending_withdrawals)]
-	pub(super) type NewPendingWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<NewWithdraw>, ValueQuery>;
+	pub(super) type PendingWithdrawals<T: Config> =
+		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
 	/// Failed Withdrawals
 	#[pallet::storage]
 	#[pallet::getter(fn get_new_failed_withdrawals)]
-	pub(super) type NewFailedWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<NewWithdraw>, ValueQuery>;
+	pub(super) type FailedWithdrawals<T: Config> =
+		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
 	/// Asset mapping from u128 asset to multi asset.
 	#[pallet::storage]
@@ -466,7 +466,7 @@ pub mod pallet {
 
 		/// Route deposit to destined function
 		pub fn handle_deposit(
-			withdrawal: NewWithdraw,
+			withdrawal: Withdraw,
 			location: VersionedMultiLocation,
 		) -> DispatchResult {
 			let destination_account = Self::get_destination_account(
@@ -560,11 +560,11 @@ pub mod pallet {
 
 		/// Block Transaction to be Executed.
 		pub fn block_by_ele(block_no: BlockNumberFor<T>, index: u32) -> DispatchResult {
-			let mut pending_withdrawals = <NewPendingWithdrawals<T>>::get(block_no);
-			let pending_withdrawal: &mut NewWithdraw =
+			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
+			let pending_withdrawal: &mut Withdraw =
 				pending_withdrawals.get_mut(index as usize).ok_or(Error::<T>::IndexNotFound)?;
 			pending_withdrawal.is_blocked = true;
-			<NewPendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
+			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
 			Ok(())
 		}
 
@@ -582,8 +582,8 @@ pub mod pallet {
 		}
 
 		pub fn handle_new_pending_withdrawals(n: BlockNumberFor<T>) {
-			let mut failed_withdrawal: Vec<NewWithdraw> = Vec::default();
-			<NewPendingWithdrawals<T>>::mutate(n, |withdrawals| {
+			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
+			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
 					if !withdrawal.is_blocked {
 						let destination = match VersionedMultiLocation::decode(
@@ -711,7 +711,7 @@ pub mod pallet {
 			});
 			// Only update the storage if vector is not empty
 			if !failed_withdrawal.is_empty() {
-				<NewFailedWithdrawals<T>>::insert(n, failed_withdrawal);
+				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
 			}
 		}
 	}
@@ -735,7 +735,7 @@ pub mod pallet {
 
 	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
 		fn execute_deposits(_: Network, deposits: Vec<u8>) {
-			let deposits = Vec::<NewWithdraw>::decode(&mut &deposits[..]).unwrap_or_default();
+			let deposits = Vec::<Withdraw>::decode(&mut &deposits[..]).unwrap_or_default();
 			for deposit in deposits {
 				// Calculate the withdrawal execution delay
 				let withdrawal_execution_block: BlockNumberFor<T> =
@@ -746,7 +746,7 @@ pub mod pallet {
 						)
 						.into();
 				// Queue the withdrawal for execution
-				<NewPendingWithdrawals<T>>::mutate(
+				<PendingWithdrawals<T>>::mutate(
 					withdrawal_execution_block,
 					|pending_withdrawals| {
 						pending_withdrawals.push(deposit);
