@@ -163,14 +163,14 @@ pub mod pallet {
 
 	pub trait AssetIdConverter {
 		/// Converts AssetId to MultiLocation
-		fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation>;
+		fn convert_asset_id_to_location(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation>;
 		/// Converts Location to AssetId
-		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128>;
+		fn convert_location_to_asset_id(location: MultiLocation) -> Option<polkadex_primitives::AssetId>;
 	}
 
 	pub trait WhitelistedTokenHandler {
 		/// Check if token is whitelisted
-		fn check_whitelisted_token(asset_id: u128) -> bool;
+		fn check_whitelisted_token(asset_id: polkadex_primitives::AssetId) -> bool;
 	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -193,8 +193,7 @@ pub mod pallet {
 			+ MaybeSerializeDeserialize
 			+ MaxEncodedLen
 			+ Into<<<Self as Config>::Assets as Inspect<Self::AccountId>>::AssetId>
-			+ From<u128>
-			+ Into<u128>;
+			+ From<polkadex_primitives::AssetId>;
 		/// Balances Pallet
 		type Currency: frame_support::traits::tokens::fungible::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungible::Inspect<Self::AccountId>;
@@ -233,14 +232,16 @@ pub mod pallet {
 		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
 	/// Asset mapping from u128 asset to multi asset.
+	/// 	// TODO: @zktony migrate from u128 to AssetId
 	#[pallet::storage]
 	#[pallet::getter(fn assets_mapping)]
-	pub type ParachainAssets<T: Config> = StorageMap<_, Identity, u128, AssetId, OptionQuery>;
+	pub type ParachainAssets<T: Config> = StorageMap<_, Identity, polkadex_primitives::AssetId, AssetId, OptionQuery>;
 
 	/// Whitelist Tokens
+	/// // TODO: @zktony migrate from u128 to AssetId
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
-	pub type WhitelistedTokens<T: Config> = StorageValue<_, Vec<u128>, ValueQuery>;
+	pub type WhitelistedTokens<T: Config> = StorageValue<_, Vec<polkadex_primitives::AssetId>, ValueQuery>;
 
 	/// Nonce used to generate randomness for txn id
 	#[pallet::storage]
@@ -258,18 +259,18 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, multiasset, asset_id]
-		AssetDeposited(Box<MultiLocation>, Box<MultiAsset>, u128),
+		AssetDeposited(Vec<u8>,Box<MultiLocation>, Box<MultiAsset>, polkadex_primitives::AssetId),
 		AssetWithdrawn(T::AccountId, Box<MultiAsset>),
 		/// New Asset Created [asset_id]
-		TheaAssetCreated(u128),
+		TheaAssetCreated(polkadex_primitives::AssetId),
 		/// Token Whitelisted For Xcm [token]
-		TokenWhitelistedForXcm(u128),
+		TokenWhitelistedForXcm(polkadex_primitives::AssetId),
 		/// Xcm Fee Transferred [recipient, amount]
 		XcmFeeTransferred(T::AccountId, u128),
 		/// Native asset id mapping is registered
-		NativeAssetIdMappingRegistered(u128, Box<AssetId>),
+		NativeAssetIdMappingRegistered(polkadex_primitives::AssetId, Box<AssetId>),
 		/// Whitelisted Token removed
-		WhitelistedTokenRemoved(u128),
+		WhitelistedTokenRemoved(polkadex_primitives::AssetId),
 	}
 
 	// Errors inform users that something went wrong.
@@ -373,8 +374,8 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Convert<u128, Option<MultiLocation>> for Pallet<T> {
-		fn convert(asset_id: u128) -> Option<MultiLocation> {
+	impl<T: Config> Convert<polkadex_primitives::AssetId, Option<MultiLocation>> for Pallet<T> {
+		fn convert(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation> {
 			Self::convert_asset_id_to_location(asset_id)
 		}
 	}
@@ -390,6 +391,8 @@ pub mod pallet {
 			let MultiAsset { id, fun } = what;
 			let recipient =
 				T::AccountIdConvert::convert_location(who).ok_or(XcmError::FailedToDecode)?;
+			// TODO: @zktony, check if multilocation is for direct deposit, then modify the extra
+			// 		field accordingly
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
 			let deposit: Deposit<T::AccountId> = Deposit {
@@ -401,9 +404,11 @@ pub mod pallet {
 			};
 
 			let parachain_network_id = T::SubstrateNetworkId::get();
+			let unique_id = deposit.id.clone();
 			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
 				.map_err(|_| XcmError::Trap(102))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(
+				unique_id,
 				Box::new(*who),
 				Box::new(what.clone()),
 				asset_id,
@@ -530,14 +535,14 @@ pub mod pallet {
 		}
 
 		/// Retrieves the existing assetid for given assetid or generates and stores a new assetid
-		pub fn generate_asset_id_for_parachain(asset: AssetId) -> u128 {
+		pub fn generate_asset_id_for_parachain(asset: AssetId) -> polkadex_primitives::AssetId {
 			// Check if its native or not.
 			if asset
 				== AssetId::Concrete(MultiLocation {
 					parents: 1,
 					interior: Junctions::X1(Parachain(T::ParachainId::get())),
 				}) {
-				return T::NativeAssetId::get().into();
+				return polkadex_primitives::AssetId::Polkadex;
 			}
 			// If it's not native, then hash and generate the asset id
 			let asset_id =
@@ -569,7 +574,7 @@ pub mod pallet {
 		}
 
 		/// Converts asset_id to XCM::MultiLocation
-		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
+		pub fn convert_asset_id_to_location(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation> {
 			Self::assets_mapping(asset_id).and_then(|asset| match asset {
 				AssetId::Concrete(location) => Some(location),
 				AssetId::Abstract(_) => None,
@@ -577,7 +582,7 @@ pub mod pallet {
 		}
 
 		/// Converts Multilocation to u128
-		pub fn convert_location_to_asset_id(location: MultiLocation) -> u128 {
+		pub fn convert_location_to_asset_id(location: MultiLocation) -> polkadex_primitives::AssetId {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location))
 		}
 
@@ -717,17 +722,17 @@ pub mod pallet {
 	}
 
 	impl<T: Config> AssetIdConverter for Pallet<T> {
-		fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
+		fn convert_asset_id_to_location(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation> {
 			Self::convert_asset_id_to_location(asset_id)
 		}
 
-		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
+		fn convert_location_to_asset_id(location: MultiLocation) -> Option<polkadex_primitives::AssetId> {
 			Some(Self::convert_location_to_asset_id(location))
 		}
 	}
 
 	impl<T: Config> WhitelistedTokenHandler for Pallet<T> {
-		fn check_whitelisted_token(asset_id: u128) -> bool {
+		fn check_whitelisted_token(asset_id: polkadex_primitives::AssetId) -> bool {
 			let whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			whitelisted_tokens.contains(&asset_id)
 		}

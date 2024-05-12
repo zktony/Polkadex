@@ -1359,7 +1359,7 @@ impl thea_executor::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Assets = Assets;
-	type AssetId = u128;
+	type AssetId = polkadex_primitives::AssetId;
 	type AssetCreateUpdateOrigin = EnsureRootOrHalfCouncil;
 	type Executor = Thea;
 	type NativeAssetId = PolkadexAssetId;
@@ -1372,6 +1372,7 @@ impl thea_executor::Config for Runtime {
 	type AssetBalanceAdapter = u128;
 	type GovernanceOrigin = EnsureRootOrHalfCouncil;
 	type ExistentialDeposit = AutoSwapInitialNativeDeposit;
+	type Orderbook = OCEX;
 }
 
 #[cfg(feature = "runtime-benchmarks")]

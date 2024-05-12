@@ -19,6 +19,7 @@
 use crate::types::TradingPair;
 use frame_support::dispatch::DispatchResult;
 use rust_decimal::Decimal;
+use polkadex_primitives::AssetId;
 
 pub trait LiquidityMiningCrowdSourcePallet<AccountId> {
 	fn new_epoch(n: u16);
@@ -114,4 +115,10 @@ impl<AccountId> LiquidityMiningCrowdSourcePallet<AccountId> for () {
 
 pub trait VerifyExtensionSignature<AccountId> {
 	fn verify_extension_signature(&self, payload: &str, account_id: &AccountId) -> bool;
+}
+
+
+pub trait OrderbookOperations<AccountId> {
+	/// Tries to deposit funds to orderbook
+	fn deposit(main: AccountId, asset: AssetId, amount: u128) -> DispatchResult;
 }

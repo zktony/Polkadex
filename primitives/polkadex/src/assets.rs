@@ -204,6 +204,15 @@ impl From<u128> for AssetId {
 	}
 }
 
+impl From<AssetId> for u128 {
+	fn from(value: AssetId) -> Self {
+		match value {
+			AssetId::Asset(id) => id,
+			AssetId::Polkadex => 0u128
+		}
+	}
+}
+
 pub struct AssetIdConverter;
 
 impl MultiAssetIdConverter<AssetId, u128> for AssetIdConverter {
@@ -287,8 +296,9 @@ impl<'de> Visitor<'de> for AssetId {
 	}
 }
 
-pub fn generate_asset_id_for_parachain(asset: sp_std::boxed::Box<xcm::v3::AssetId>) -> u128 {
-	u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..]))
+pub fn generate_asset_id_for_parachain(asset: sp_std::boxed::Box<xcm::v3::AssetId>) -> crate::AssetId {
+	// TODO: @zktony handle PDEX multi asset
+	AssetId::Asset(u128::from_be_bytes(sp_io::hashing::blake2_128(&asset.encode()[..])))
 }
 
 #[cfg(feature = "std")]

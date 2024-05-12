@@ -60,6 +60,7 @@ use orderbook_primitives::{
 	SnapshotSummary, ValidatorSet, GENESIS_AUTHORITY_SET_ID,
 };
 use sp_std::vec::Vec;
+use orderbook_primitives::traits::OrderbookOperations;
 
 #[cfg(test)]
 mod mock;
@@ -2394,4 +2395,11 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	}
 
 	fn on_disabled(_i: u32) {}
+}
+
+
+impl<T: Config> OrderbookOperations<T::AccountId> for Pallet<T> {
+	fn deposit(main: T::AccountId, asset: AssetId, amount: u128) -> DispatchResult {
+		Self::do_deposit(main, asset,amount.saturated_into())
+	}
 }

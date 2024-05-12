@@ -13598,6 +13598,7 @@ dependencies = [
  "frame-support",
  "frame-system",
  "log",
+ "orderbook-primitives",
  "pallet-asset-conversion",
  "pallet-assets",
  "pallet-balances",

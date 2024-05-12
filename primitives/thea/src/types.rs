@@ -20,7 +20,7 @@
 
 use frame_support::__private::log;
 use parity_scale_codec::{Decode, Encode};
-use polkadex_primitives::UNIT_BALANCE;
+use polkadex_primitives::{AssetId, UNIT_BALANCE};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
 use sp_runtime::Percent;
@@ -233,7 +233,7 @@ pub struct Deposit<AccountId> {
 	/// Receiver of the deposit.
 	pub recipient: AccountId,
 	/// Asset identifier.
-	pub asset_id: u128,
+	pub asset_id: AssetId,
 	/// Amount of the deposit.
 	pub amount: u128,
 	/// Extra data.
@@ -259,13 +259,13 @@ pub struct Withdraw {
 	pub id: Vec<u8>,
 	// Unique identifier
 	/// Asset identifier.
-	pub asset_id: u128,
+	pub asset_id: AssetId,
 	/// Amount of the withdrawal.
 	pub amount: u128,
 	/// Receiver of the withdrawal.
 	pub destination: Vec<u8>,
 	/// Fee Asset Id
-	pub fee_asset_id: Option<u128>,
+	pub fee_asset_id: Option<AssetId>,
 	/// Fee Amount
 	pub fee_amount: Option<u128>,
 	/// Defines if withdraw operation is blocked.
@@ -277,7 +277,7 @@ pub struct Withdraw {
 /// Metadata of asset's decimals
 #[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug, Copy)]
 pub struct AssetMetadata {
-	decimal: u8,
+	pub decimal: u8,
 }
 
 impl AssetMetadata {

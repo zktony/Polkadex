@@ -19,6 +19,7 @@ frame-benchmarking = { workspace = true, default-features = false, optional = tr
 sp-core = { workspace = true, default-features = false }
 sp-io = { workspace = true, default-features = false }
 thea-primitives = { path = "../../primitives/thea", default-features = false }
+orderbook-primitives = { path = "../../primitives/orderbook", default-features = false }
 xcm = { workspace = true, default-features = false }
 
 [dev-dependencies]
@@ -35,6 +36,7 @@ std = [
   "sp-application-crypto/std",
   "pallet-asset-conversion/std",
   "thea-primitives/std",
+  "orderbook-primitives/std",
   "parity-scale-codec/std",
   "scale-info/std",
   "frame-support/std",

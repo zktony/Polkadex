@@ -17,7 +17,7 @@ use super::{
 	AccountId, Balances, ParachainInfo, ParachainSystem, PolkadotXcm, Runtime, RuntimeCall,
 	RuntimeEvent, RuntimeOrigin, WeightToFee, XcmpQueue,
 };
-use crate::{AllPalletsWithSystem, Balance, PolkadexAssetid, XcmHelper};
+use crate::{AllPalletsWithSystem, Balance, XcmHelper};
 use core::marker::PhantomData;
 use frame_support::{
 	match_types, parameter_types,
@@ -272,7 +272,7 @@ parameter_type_with_key! {
 impl orml_xtokens::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Balance = Balance;
-	type CurrencyId = u128;
+	type CurrencyId = polkadex_primitives::AssetId;
 	type CurrencyIdConvert = XcmHelper;
 	type AccountIdToMultiLocation = AccountIdToMultiLocation;
 	type SelfLocation = SelfLocation;
@@ -330,9 +330,9 @@ where
 		let _fee_in_native_token = T::weight_to_fee(&weight);
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
-			let foreign_currency_asset_id =
-				AC::convert_location_to_asset_id(location).ok_or(XcmError::Trap(1001))?;
-			let _path = [PolkadexAssetid::get(), foreign_currency_asset_id];
+			// let foreign_currency_asset_id =
+				// AC::convert_location_to_asset_id(location).ok_or(XcmError::Trap(1001))?;
+			// let _path = [PolkadexAssetid::get(), foreign_currency_asset_id.into()];
 			//WILL BE RESTORED LATER
 			// let (unused, expected_fee_in_foreign_currency) =
 			// 	if WH::check_whitelisted_token(foreign_currency_asset_id) {
