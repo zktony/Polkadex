@@ -598,7 +598,7 @@ pub mod pallet {
 				fee_asset_id,
 				fee_amount,
 				is_blocked: false,
-				extra: Vec::new(),
+				extra: thea_primitives::extras::ExtraData::None,
 			};
 
 			Self::deposit_event(Event::<T>::WithdrawalQueued(

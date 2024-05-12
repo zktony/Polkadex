@@ -138,7 +138,7 @@ pub mod pallet {
 	use crate::MAXIMUM_BLOCK_WEIGHT;
 	use sp_std::{boxed::Box, vec, vec::Vec};
 	use thea_primitives::{
-		types::{Deposit, NewWithdraw, Withdraw},
+		types::{Deposit, NewWithdraw},
 		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
 	use xcm::{
@@ -222,21 +222,9 @@ pub mod pallet {
 
 	/// Pending Withdrawals
 	#[pallet::storage]
-	#[pallet::getter(fn get_pending_withdrawals)]
-	pub(super) type PendingWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
-
-	/// Pending Withdrawals
-	#[pallet::storage]
 	#[pallet::getter(fn get_new_pending_withdrawals)]
 	pub(super) type NewPendingWithdrawals<T: Config> =
 		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<NewWithdraw>, ValueQuery>;
-
-	/// Failed Withdrawals
-	#[pallet::storage]
-	#[pallet::getter(fn get_failed_withdrawals)]
-	pub(super) type FailedWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
 	/// Failed Withdrawals
 	#[pallet::storage]
@@ -322,7 +310,6 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			Self::handle_old_pending_withdrawals(n);
 			Self::handle_new_pending_withdrawals(n);
 			// Only update the storage if vector is not empty
 			// TODO: We are currently over estimating the weight here to 1/4th of total block time
@@ -410,7 +397,7 @@ pub mod pallet {
 				recipient,
 				asset_id,
 				amount,
-				extra: Vec::new(),
+				extra: thea_primitives::extras::ExtraData::None,
 			};
 
 			let parachain_network_id = T::SubstrateNetworkId::get();
@@ -479,7 +466,7 @@ pub mod pallet {
 
 		/// Route deposit to destined function
 		pub fn handle_deposit(
-			withdrawal: Withdraw,
+			withdrawal: NewWithdraw,
 			location: VersionedMultiLocation,
 		) -> DispatchResult {
 			let destination_account = Self::get_destination_account(
@@ -573,11 +560,11 @@ pub mod pallet {
 
 		/// Block Transaction to be Executed.
 		pub fn block_by_ele(block_no: BlockNumberFor<T>, index: u32) -> DispatchResult {
-			let mut pending_withdrawals = <PendingWithdrawals<T>>::get(block_no);
-			let pending_withdrawal: &mut Withdraw =
+			let mut pending_withdrawals = <NewPendingWithdrawals<T>>::get(block_no);
+			let pending_withdrawal: &mut NewWithdraw =
 				pending_withdrawals.get_mut(index as usize).ok_or(Error::<T>::IndexNotFound)?;
 			pending_withdrawal.is_blocked = true;
-			<PendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
+			<NewPendingWithdrawals<T>>::insert(block_no, pending_withdrawals);
 			Ok(())
 		}
 
@@ -592,80 +579,6 @@ pub mod pallet {
 		/// Converts Multilocation to u128
 		pub fn convert_location_to_asset_id(location: MultiLocation) -> u128 {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location))
-		}
-
-		pub fn insert_pending_withdrawal(block_no: BlockNumberFor<T>, withdrawal: Withdraw) {
-			<PendingWithdrawals<T>>::insert(block_no, vec![withdrawal]);
-		}
-
-		pub fn handle_old_pending_withdrawals(n: BlockNumberFor<T>) {
-			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
-			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
-				while let Some(withdrawal) = withdrawals.pop() {
-					if !withdrawal.is_blocked {
-						let destination = match VersionedMultiLocation::decode(
-							&mut &withdrawal.destination[..],
-						) {
-							Ok(dest) => dest,
-							Err(_) => {
-								failed_withdrawal.push(withdrawal);
-								log::error!(target:"xcm-helper","Withdrawal failed: Not able to decode destination");
-								continue;
-							},
-						};
-						if !Self::is_polkadex_parachain_destination(&destination) {
-							if let Some(asset) = Self::assets_mapping(withdrawal.asset_id) {
-								let multi_asset = MultiAsset {
-									id: asset,
-									fun: Fungibility::Fungible(withdrawal.amount),
-								};
-								let pallet_account: T::AccountId =
-									T::AssetHandlerPalletId::get().into_account_truncating();
-								// Mint
-								if Self::resolver_deposit(
-									withdrawal.asset_id.into(),
-									withdrawal.amount,
-									&pallet_account,
-									pallet_account.clone(),
-									1u128,
-									pallet_account.clone(),
-								)
-								.is_err()
-								{
-									failed_withdrawal.push(withdrawal.clone());
-									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
-								};
-								if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
-									RawOrigin::Signed(
-										T::AssetHandlerPalletId::get().into_account_truncating(),
-									)
-									.into(),
-									Box::new(multi_asset.into()),
-									0,
-									Box::new(destination.clone()),
-									cumulus_primitives_core::WeightLimit::Unlimited,
-								)
-								.is_err()
-								{
-									failed_withdrawal.push(withdrawal.clone());
-									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
-								}
-							} else {
-								failed_withdrawal.push(withdrawal)
-							}
-						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
-							failed_withdrawal.push(withdrawal);
-							log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
-						}
-					} else {
-						failed_withdrawal.push(withdrawal);
-						log::error!(target:"xcm-helper","Withdrawal failed: Withdrawal is blocked");
-					}
-				}
-			});
-			if !failed_withdrawal.is_empty() {
-				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
-			}
 		}
 
 		pub fn handle_new_pending_withdrawals(n: BlockNumberFor<T>) {

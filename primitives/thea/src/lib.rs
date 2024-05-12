@@ -24,7 +24,7 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 pub mod types;
-mod extras;
+pub mod extras;
 
 pub use crate::types::Message;
 use parity_scale_codec::{Decode, Encode};

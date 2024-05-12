@@ -29,7 +29,7 @@ use sp_std::vec::Vec;
 use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap};
 
 use crate::{Network, ValidatorSetId};
-use crate::extras::ExtraDataV1;
+use crate::extras::ExtraData;
 
 /// Defines the message structure.
 #[derive(
@@ -237,7 +237,7 @@ pub struct Deposit<AccountId> {
 	/// Amount of the deposit.
 	pub amount: u128,
 	/// Extra data.
-	pub extra: ExtraDataV1,
+	pub extra: ExtraData,
 }
 
 impl<AccountId> Deposit<AccountId> {
@@ -271,7 +271,7 @@ pub struct NewWithdraw {
 	/// Defines if withdraw operation is blocked.
 	pub is_blocked: bool,
 	/// Extra data.
-	pub extra: ExtraDataV1,
+	pub extra: ExtraData,
 }
 
 /// Metadata of asset's decimals

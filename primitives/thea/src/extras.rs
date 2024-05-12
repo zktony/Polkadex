@@ -5,6 +5,7 @@ use parity_scale_codec::{Decode, Encode};
 /// with new variants for future features
 
 #[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
-pub enum ExtraDataV1 {
+pub enum ExtraData {
+    None,
     DirectDeposit
 }
