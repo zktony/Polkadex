@@ -225,13 +225,13 @@ pub mod pallet {
 
 	/// Pending Withdrawals
 	#[pallet::storage]
-	#[pallet::getter(fn get_new_pending_withdrawals)]
+	#[pallet::getter(fn get_pending_withdrawals)]
 	pub(super) type PendingWithdrawals<T: Config> =
 		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
 	/// Failed Withdrawals
 	#[pallet::storage]
-	#[pallet::getter(fn get_new_failed_withdrawals)]
+	#[pallet::getter(fn get_failed_withdrawals)]
 	pub(super) type FailedWithdrawals<T: Config> =
 		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
@@ -594,6 +594,10 @@ pub mod pallet {
 			location: MultiLocation,
 		) -> polkadex_primitives::AssetId {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location))
+		}
+
+		pub fn insert_pending_withdrawal(block_no: BlockNumberFor<T>, withdrawal: Withdraw) {
+			<PendingWithdrawals<T>>::insert(block_no, vec![withdrawal]);
 		}
 
 		pub fn handle_new_pending_withdrawals(n: BlockNumberFor<T>) {

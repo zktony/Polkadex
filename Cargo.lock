@@ -13576,6 +13576,7 @@ dependencies = [
  "pallet-xcm",
  "parachain-info",
  "parity-scale-codec",
+ "polkadex-primitives",
  "scale-info",
  "sp-core",
  "sp-io",

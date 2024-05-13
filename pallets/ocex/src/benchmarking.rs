@@ -285,12 +285,13 @@ benchmarks! {
 		let mut vec_withdrawals = Vec::with_capacity(1);
 		let fees = Decimal::new(100, 5);
 		vec_withdrawals.push(Withdrawal {
+			id: Default::default(),
 			amount: Decimal::new(x.into(), 0),
 			stid:0,
 			asset,
 			main_account: main.clone(),
 			fees,
-		});
+		destination: None,});
 		let mut wm = sp_std::collections::btree_map::BTreeMap::new();
 		wm.insert(main.clone(), vec_withdrawals.clone());
 		<Withdrawals<T>>::insert(x as u64, wm);
@@ -580,11 +581,13 @@ fn get_dummy_snapshot<T: Config>() -> SnapshotSummary<T::AccountId> {
 	);
 	for _ in 0..50 {
 		withdrawals.push(Withdrawal {
+			id: Default::default(),
 			main_account: T::AccountId::decode(&mut &[0u8; 32][..]).unwrap(),
 			amount: Decimal::one(),
 			asset: AssetId::Polkadex,
 			fees: Decimal::one(),
 			stid: 1,
+			destination: None,
 		});
 	}
 	SnapshotSummary {
