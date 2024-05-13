@@ -270,6 +270,8 @@ pub enum UserActions<AccountId: Ord + Codec + Clone + TypeInfo> {
 /// Defines withdraw request DTO.
 #[derive(Clone, Debug, Decode, Encode, TypeInfo, PartialEq, Serialize, Deserialize)]
 pub struct WithdrawalRequest<AccountId: Codec + Clone + TypeInfo> {
+	/// Withdrawal ID
+	pub id: H256,
 	/// Signature.
 	pub signature: Signature,
 	/// Payload.
@@ -283,6 +285,7 @@ pub struct WithdrawalRequest<AccountId: Codec + Clone + TypeInfo> {
 impl<AccountId: Clone + Codec + TypeInfo> WithdrawalRequest<AccountId> {
 	pub fn convert(&self, stid: u64) -> Result<Withdrawal<AccountId>, rust_decimal::Error> {
 		Ok(Withdrawal {
+			id: self.id,
 			main_account: self.main.clone(),
 			amount: self.amount()?,
 			asset: self.payload.asset_id,

@@ -21,6 +21,7 @@
 use crate::assets::AssetId;
 use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::pallet_prelude::DispatchResult;
+use primitive_types::H256;
 use rust_decimal::Decimal;
 use scale_info::TypeInfo;
 
@@ -40,6 +41,8 @@ pub enum WithdrawalDestination {
 	Clone, Encode, Decode, MaxEncodedLen, TypeInfo, Debug, PartialEq, Serialize, Deserialize,
 )]
 pub struct Withdrawal<AccountId> {
+	/// Withdrawal ID
+	pub id: H256,
 	/// Main account identifier.
 	pub main_account: AccountId,
 	/// Amount of withdrawal.
