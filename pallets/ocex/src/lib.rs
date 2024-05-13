@@ -145,6 +145,7 @@ pub trait OcexWeightInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use orderbook_primitives::traits::LiquidityMiningCrowdSourcePallet;
+	use polkadex_primitives::withdrawal::WithdrawalDestination;
 	use sp_std::collections::btree_map::BTreeMap;
 	// Import various types used to declare pallet in scope.
 	use super::*;
@@ -177,6 +178,7 @@ pub mod pallet {
 		SaturatedConversion,
 	};
 	use sp_std::vec::Vec;
+	use polkadex_primitives::withdrawal::CrossChainWithdraw;
 
 	type WithdrawalsMap<T> = BTreeMap<
 		<T as frame_system::Config>::AccountId,
@@ -278,6 +280,9 @@ pub mod pallet {
 		type CrowdSourceLiqudityMining: LiquidityMiningCrowdSourcePallet<
 			<Self as frame_system::Config>::AccountId,
 		>;
+
+		/// CrossChain Withdrawal
+		type CrossChainGadget: CrossChainWithdraw<Self::AccountId>;
 
 		/// Type representing the weight of this pallet
 		type WeightInfo: OcexWeightInfo;
@@ -1314,6 +1319,7 @@ pub mod pallet {
 		StorageValue<_, AuctionInfo<T::AccountId, BalanceOf<T>>, OptionQuery>;
 
 	impl<T: crate::pallet::Config> crate::pallet::Pallet<T> {
+
 		pub fn do_withdraw(
 			snapshot_id: u64,
 			mut withdrawal_vector: Vec<Withdrawal<T::AccountId>>,
@@ -1324,7 +1330,7 @@ pub mod pallet {
 				// Perform pop operation to ensure we do not leave any withdrawal left
 				// for a double spend
 				if let Some(withdrawal) = withdrawal_vector.pop() {
-					if Self::on_idle_withdrawal_processor(withdrawal.clone()) {
+					if Self::on_idle_withdrawal_processor(withdrawal.clone()).is_ok() {
 						processed_withdrawals.push(withdrawal.to_owned());
 					} else {
 						// Storing the failed withdrawals back into the storage item
@@ -1813,22 +1819,47 @@ pub mod pallet {
 
 		/// Performs actual transfer of assets from pallet account to target destination
 		/// Used to finalize withdrawals in extrinsic or on_idle
+		#[transactional]
 		fn on_idle_withdrawal_processor(
 			withdrawal: Withdrawal<<T as frame_system::Config>::AccountId>,
-		) -> bool {
-			if let Some(converted_withdrawal) =
-				withdrawal.amount.saturating_mul(Decimal::from(UNIT_BALANCE)).to_u128()
-			{
-				Self::transfer_asset(
-					&Self::get_pallet_account(),
-					&withdrawal.main_account,
-					converted_withdrawal.saturated_into(),
-					withdrawal.asset,
-				)
-				.is_ok()
-			} else {
-				false
+		) -> DispatchResult {
+
+			let converted_withdrawal = withdrawal.amount.saturating_mul(Decimal::from(UNIT_BALANCE))
+				.to_u128().ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
+
+			Self::transfer_asset(
+				&Self::get_pallet_account(),
+				&withdrawal.main_account,
+				converted_withdrawal.saturated_into(),
+				withdrawal.asset,
+			)?;
+
+			// on_idle_withdrawal_processor is called in a transacitonal manner so it is okay.
+			if let Some(destination) = withdrawal.destination {
+				match destination {
+					WithdrawalDestination::Polkadot(multi_location,None) => {
+						T::CrossChainGadget::parachain_withdraw(
+							withdrawal.main_account,
+							withdrawal.asset,
+							converted_withdrawal,
+							multi_location,
+							None,
+							None
+						)?
+					},
+					WithdrawalDestination::Polkadot(multi_location,Some((fee_asset_id,fee_amount))) => {
+						T::CrossChainGadget::parachain_withdraw(
+							withdrawal.main_account,
+							withdrawal.asset,
+							converted_withdrawal,
+							multi_location,
+							Some(fee_asset_id),
+							Some(fee_amount)
+						)?
+					}
+				}
 			}
+			Ok(())
 		}
 
 		/// Collects onchain registered main and proxy accounts

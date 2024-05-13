@@ -20,11 +20,18 @@
 
 use crate::assets::AssetId;
 use codec::{Decode, Encode, MaxEncodedLen};
+use frame_support::pallet_prelude::DispatchResult;
 use rust_decimal::Decimal;
 use scale_info::TypeInfo;
 
-use crate::AccountId;
+use crate::{AccountId, Balance};
 use serde::{Deserialize, Serialize};
+use xcm::latest::MultiLocation;
+
+#[derive(Encode, Decode, Clone, MaxEncodedLen, Debug, PartialEq, Eq, TypeInfo, Serialize, Deserialize)]
+pub enum WithdrawalDestination {
+	Polkadot(MultiLocation, Option<(AssetId, Balance)>)
+}
 
 /// Defines withdrawal structure.
 #[derive(
@@ -41,6 +48,8 @@ pub struct Withdrawal<AccountId> {
 	pub fees: Decimal,
 	/// State change identifier.
 	pub stid: u64,
+	/// Cross-chain withdrawal destination
+	pub destination: Option<WithdrawalDestination>
 }
 
 /// Defines payload item structure collected in `Withdrawals` structure.
@@ -63,4 +72,17 @@ pub struct Withdrawals {
 	pub withdrawals: sp_std::vec::Vec<WithdrawalPayload>,
 	/// Nonce (identifier).
 	pub nonce: u32,
+}
+
+
+pub trait CrossChainWithdraw<AccountId> {
+	fn parachain_withdraw(
+		user: AccountId,
+		asset_id: AssetId,
+	  amount: u128,
+	  beneficiary: xcm::latest::MultiLocation,
+	  fee_asset_id: Option<AssetId>,
+	  fee_amount: Option<u128>
+	) -> DispatchResult;
+
 }

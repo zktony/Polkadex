@@ -1300,6 +1300,7 @@ impl pallet_ocex_lmp::Config for Runtime {
 	type CrowdSourceLiqudityMining = ();
 	type OBWithdrawalLimit = OBWithdrawalLimit;
 	type WeightInfo = pallet_ocex_lmp::weights::WeightInfo<Runtime>;
+	type CrossChainGadget = TheaExecutor;
 }
 
 //Install rewards Pallet

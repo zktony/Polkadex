@@ -748,4 +748,29 @@ pub mod pallet {
 			<Metadata<T>>::insert(asset_id, metadata);
 		}
 	}
+
+	impl<T: Config> polkadex_primitives::withdrawal::CrossChainWithdraw<T::AccountId> for Pallet<T> {
+		fn parachain_withdraw(user: T::AccountId,
+							  asset_id: AssetId,
+							  amount: u128,
+							  beneficiary: xcm::latest::MultiLocation,
+							  fee_asset_id: Option<AssetId>,
+							  fee_amount: Option<u128>
+		) -> DispatchResult {
+			let network = 1;
+			let versioned_multilocation: xcm::VersionedMultiLocation = beneficiary.into();
+			Self::do_withdraw(
+				user,
+				asset_id,
+				amount,
+				versioned_multilocation.encode(),
+				fee_asset_id,
+				fee_amount,
+				true,
+				network,
+				false, // TODO: Let the user buy PDEX from OB?
+			)
+    }
+
+	}
 }
