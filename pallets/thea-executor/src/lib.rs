@@ -101,7 +101,8 @@ pub mod pallet {
 			+ MaybeSerializeDeserialize
 			+ MaxEncodedLen
 			+ Into<<<Self as pallet::Config>::Assets as Inspect<Self::AccountId>>::AssetId>
-			+ From<polkadex_primitives::AssetId> + From<u128>;
+			+ From<polkadex_primitives::AssetId>
+			+ From<u128>;
 		type MultiAssetIdAdapter: From<AssetId>
 			+ Into<<Self as pallet_asset_conversion::Config>::MultiAssetId>;
 

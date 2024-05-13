@@ -193,8 +193,8 @@ benchmarks! {
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
-use xcm::latest::{Junctions, MultiLocation};
 use thea_primitives::extras::ExtraData;
+use xcm::latest::{Junctions, MultiLocation};
 
 #[cfg(test)]
 impl_benchmark_test_suite!(TheaExecutor, crate::mock::new_test_ext(), crate::mock::Test);

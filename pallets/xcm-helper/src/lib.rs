@@ -716,9 +716,7 @@ pub mod pallet {
 							} else {
 								failed_withdrawal.push(withdrawal)
 							}
-						} else if Self::handle_deposit(withdrawal.clone(), destination)
-							.is_err()
-						{
+						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
 							failed_withdrawal.push(withdrawal);
 							log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
 						}

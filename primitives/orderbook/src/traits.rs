@@ -122,7 +122,6 @@ pub trait OrderbookOperations<AccountId> {
 	fn deposit(main: AccountId, asset: AssetId, amount: u128) -> DispatchResult;
 }
 
-
 // Stub for Orderbook trait
 impl<AccountId> OrderbookOperations<AccountId> for () {
 	fn deposit(_main: AccountId, _asset: AssetId, _amount: u128) -> DispatchResult {

@@ -27,18 +27,18 @@ use frame_support::{
 };
 use frame_system::EventRecord;
 use parity_scale_codec::Encode;
+use polkadex_primitives::AssetId;
+use polkadex_primitives::AssetId::Asset;
 use sp_core::H160;
 use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin},
 	SaturatedConversion,
 };
+use thea_primitives::extras::ExtraData;
 use thea_primitives::types::Withdraw;
 use thea_primitives::types::{AssetMetadata, Deposit};
 use xcm::v3::Junction;
 use xcm::{opaque::lts::Junctions, v3::MultiLocation, VersionedMultiLocation};
-use polkadex_primitives::AssetId;
-use polkadex_primitives::AssetId::Asset;
-use thea_primitives::extras::ExtraData;
 
 fn assert_last_event<T: crate::Config>(generic_event: <T as crate::Config>::RuntimeEvent) {
 	let events = frame_system::Pallet::<T>::events();
@@ -290,7 +290,10 @@ fn test_update_asset_metadata_full() {
 			TheaExecutor::update_asset_metadata(RuntimeOrigin::signed(u64::MAX), 1.into(), 1),
 			BadOrigin
 		);
-		assert_noop!(TheaExecutor::update_asset_metadata(RuntimeOrigin::none(), 1.into(), 1), BadOrigin);
+		assert_noop!(
+			TheaExecutor::update_asset_metadata(RuntimeOrigin::none(), 1.into(), 1),
+			BadOrigin
+		);
 		// invalid decimal
 		assert_noop!(
 			TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), u128::MAX.into(), u8::MIN),
@@ -299,7 +302,11 @@ fn test_update_asset_metadata_full() {
 		// proper cases
 		System::set_block_number(1);
 		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), 0.into(), u8::MAX));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), u128::MAX.into(), u8::MAX));
+		assert_ok!(TheaExecutor::update_asset_metadata(
+			RuntimeOrigin::root(),
+			u128::MAX.into(),
+			u8::MAX
+		));
 		let md = AssetMetadata::new(u8::MAX).unwrap();
 		assert_last_event::<Test>(Event::<Test>::AssetMetadataSet(md).into());
 	})

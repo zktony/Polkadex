@@ -21,8 +21,8 @@ use frame_benchmarking::v1::{account, benchmarks};
 use frame_support::{sp_runtime::SaturatedConversion, BoundedVec};
 use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
 use sp_std::{vec, vec::Vec};
-use thea_primitives::types::Withdraw;
 use thea_primitives::extras::ExtraData;
+use thea_primitives::types::Withdraw;
 const SEED: u32 = 0;
 
 benchmarks! {
