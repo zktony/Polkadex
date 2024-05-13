@@ -331,7 +331,7 @@ where
 		let payment_asset = payment.fungible_assets_iter().next().ok_or(XcmError::Trap(1000))?;
 		if let AssetId::Concrete(location) = payment_asset.id {
 			// let foreign_currency_asset_id =
-				// AC::convert_location_to_asset_id(location).ok_or(XcmError::Trap(1001))?;
+			// AC::convert_location_to_asset_id(location).ok_or(XcmError::Trap(1001))?;
 			// let _path = [PolkadexAssetid::get(), foreign_currency_asset_id.into()];
 			//WILL BE RESTORED LATER
 			// let (unused, expected_fee_in_foreign_currency) =

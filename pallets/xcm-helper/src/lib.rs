@@ -163,9 +163,13 @@ pub mod pallet {
 
 	pub trait AssetIdConverter {
 		/// Converts AssetId to MultiLocation
-		fn convert_asset_id_to_location(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation>;
+		fn convert_asset_id_to_location(
+			asset_id: polkadex_primitives::AssetId,
+		) -> Option<MultiLocation>;
 		/// Converts Location to AssetId
-		fn convert_location_to_asset_id(location: MultiLocation) -> Option<polkadex_primitives::AssetId>;
+		fn convert_location_to_asset_id(
+			location: MultiLocation,
+		) -> Option<polkadex_primitives::AssetId>;
 	}
 
 	pub trait WhitelistedTokenHandler {
@@ -235,13 +239,15 @@ pub mod pallet {
 	/// 	// TODO: @zktony migrate from u128 to AssetId
 	#[pallet::storage]
 	#[pallet::getter(fn assets_mapping)]
-	pub type ParachainAssets<T: Config> = StorageMap<_, Identity, polkadex_primitives::AssetId, AssetId, OptionQuery>;
+	pub type ParachainAssets<T: Config> =
+		StorageMap<_, Identity, polkadex_primitives::AssetId, AssetId, OptionQuery>;
 
 	/// Whitelist Tokens
 	/// // TODO: @zktony migrate from u128 to AssetId
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
-	pub type WhitelistedTokens<T: Config> = StorageValue<_, Vec<polkadex_primitives::AssetId>, ValueQuery>;
+	pub type WhitelistedTokens<T: Config> =
+		StorageValue<_, Vec<polkadex_primitives::AssetId>, ValueQuery>;
 
 	/// Nonce used to generate randomness for txn id
 	#[pallet::storage]
@@ -259,7 +265,7 @@ pub mod pallet {
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
 		/// parameters. [recipient, multiasset, asset_id]
-		AssetDeposited(Vec<u8>,Box<MultiLocation>, Box<MultiAsset>, polkadex_primitives::AssetId),
+		AssetDeposited(Vec<u8>, Box<MultiLocation>, Box<MultiAsset>, polkadex_primitives::AssetId),
 		AssetWithdrawn(T::AccountId, Box<MultiAsset>),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(polkadex_primitives::AssetId),
@@ -574,7 +580,9 @@ pub mod pallet {
 		}
 
 		/// Converts asset_id to XCM::MultiLocation
-		pub fn convert_asset_id_to_location(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation> {
+		pub fn convert_asset_id_to_location(
+			asset_id: polkadex_primitives::AssetId,
+		) -> Option<MultiLocation> {
 			Self::assets_mapping(asset_id).and_then(|asset| match asset {
 				AssetId::Concrete(location) => Some(location),
 				AssetId::Abstract(_) => None,
@@ -582,7 +590,9 @@ pub mod pallet {
 		}
 
 		/// Converts Multilocation to u128
-		pub fn convert_location_to_asset_id(location: MultiLocation) -> polkadex_primitives::AssetId {
+		pub fn convert_location_to_asset_id(
+			location: MultiLocation,
+		) -> polkadex_primitives::AssetId {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location))
 		}
 
@@ -722,11 +732,15 @@ pub mod pallet {
 	}
 
 	impl<T: Config> AssetIdConverter for Pallet<T> {
-		fn convert_asset_id_to_location(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation> {
+		fn convert_asset_id_to_location(
+			asset_id: polkadex_primitives::AssetId,
+		) -> Option<MultiLocation> {
 			Self::convert_asset_id_to_location(asset_id)
 		}
 
-		fn convert_location_to_asset_id(location: MultiLocation) -> Option<polkadex_primitives::AssetId> {
+		fn convert_location_to_asset_id(
+			location: MultiLocation,
+		) -> Option<polkadex_primitives::AssetId> {
 			Some(Self::convert_location_to_asset_id(location))
 		}
 	}

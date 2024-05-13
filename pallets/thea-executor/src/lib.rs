@@ -51,8 +51,6 @@ pub trait TheaExecutorWeightInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use super::*;
-	use thea_primitives::extras::ExtraData;
-	use orderbook_primitives::traits::OrderbookOperations;
 	use frame_support::{
 		pallet_prelude::*,
 		sp_runtime::SaturatedConversion,
@@ -64,11 +62,13 @@ pub mod pallet {
 		transactional,
 	};
 	use frame_system::pallet_prelude::*;
+	use orderbook_primitives::traits::OrderbookOperations;
 	use pallet_asset_conversion::Swap;
 	use polkadex_primitives::{AssetId, Resolver};
 	use sp_core::{H160, H256};
 	use sp_runtime::{traits::AccountIdConversion, Saturating};
 	use sp_std::vec::Vec;
+	use thea_primitives::extras::ExtraData;
 	use thea_primitives::types::Withdraw;
 	use thea_primitives::{
 		types::{AssetMetadata, Deposit},
@@ -178,7 +178,8 @@ pub mod pallet {
 	/// TODO: @zktony, migrate from u128 key to polkadex_primitives::AssetId
 	#[pallet::storage]
 	#[pallet::getter(fn asset_metadata)]
-	pub type Metadata<T: Config> = StorageMap<_, Identity, polkadex_primitives::AssetId, AssetMetadata, OptionQuery>;
+	pub type Metadata<T: Config> =
+		StorageMap<_, Identity, polkadex_primitives::AssetId, AssetMetadata, OptionQuery>;
 
 	// Pallets use events to inform users when important changes are made.
 	// https://docs.substrate.io/main-docs/build/events-errors/
@@ -559,10 +560,7 @@ pub mod pallet {
 
 			if pay_with_tokens && asset_id != AssetId::Polkadex {
 				// User wants to pay with withdrawing tokens.
-				let path = sp_std::vec![
-					asset_id,
-					polkadex_primitives::AssetId::Polkadex
-				];
+				let path = sp_std::vec![asset_id, polkadex_primitives::AssetId::Polkadex];
 				let token_taken = T::Swap::swap_tokens_for_exact_tokens(
 					user.clone(),
 					path,
@@ -661,47 +659,52 @@ pub mod pallet {
 
 		#[transactional]
 		pub fn execute_deposit(deposit: Deposit<T::AccountId>) -> Result<(), DispatchError> {
-
 			// Get the metadata
-			let metadata = <Metadata<T>>::get(deposit.asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
+			let metadata =
+				<Metadata<T>>::get(deposit.asset_id).ok_or(Error::<T>::AssetNotRegistered)?;
 
 			let deposit_amount = deposit.amount_in_native_decimals(metadata); // Convert the decimals configured in metadata
 
-			let final_deposit_amount = if !frame_system::Pallet::<T>::account_exists(&deposit.recipient) && deposit.asset_id != AssetId::Polkadex {
-				let path = sp_std::vec![
-					deposit.asset_id,
-					polkadex_primitives::AssetId::Polkadex
-				];
-				let amount_out: T::AssetBalanceAdapter = T::ExistentialDeposit::get().into();
-				Self::resolve_mint(&Self::thea_account(), deposit.asset_id.into(), deposit_amount)?;
-				// If swap doesn't work then it will in the system account - thea_account()
-				let fee_amount = T::Swap::swap_tokens_for_exact_tokens(
-					Self::thea_account(),
-					path,
-					amount_out.into(),
-					Some(deposit_amount),
-					deposit.recipient.clone(),
-					true,
-				)?;
-				let final_amount = deposit_amount.saturating_sub(fee_amount);
-				Self::resolve_transfer(
-					deposit.asset_id.into(),
-					&Self::thea_account(),
-					&deposit.recipient,
-					final_amount,
-				)?;
-				final_amount
-			} else {
-				Self::resolver_deposit(
-					deposit.asset_id.into(),
-					deposit_amount,
-					&deposit.recipient,
-					Self::thea_account(),
-					1u128,
-					Self::thea_account(),
-				)?;
-				deposit_amount
-			};
+			let final_deposit_amount =
+				if !frame_system::Pallet::<T>::account_exists(&deposit.recipient)
+					&& deposit.asset_id != AssetId::Polkadex
+				{
+					let path =
+						sp_std::vec![deposit.asset_id, polkadex_primitives::AssetId::Polkadex];
+					let amount_out: T::AssetBalanceAdapter = T::ExistentialDeposit::get().into();
+					Self::resolve_mint(
+						&Self::thea_account(),
+						deposit.asset_id.into(),
+						deposit_amount,
+					)?;
+					// If swap doesn't work then it will in the system account - thea_account()
+					let fee_amount = T::Swap::swap_tokens_for_exact_tokens(
+						Self::thea_account(),
+						path,
+						amount_out.into(),
+						Some(deposit_amount),
+						deposit.recipient.clone(),
+						true,
+					)?;
+					let final_amount = deposit_amount.saturating_sub(fee_amount);
+					Self::resolve_transfer(
+						deposit.asset_id.into(),
+						&Self::thea_account(),
+						&deposit.recipient,
+						final_amount,
+					)?;
+					final_amount
+				} else {
+					Self::resolver_deposit(
+						deposit.asset_id.into(),
+						deposit_amount,
+						&deposit.recipient,
+						Self::thea_account(),
+						1u128,
+						Self::thea_account(),
+					)?;
+					deposit_amount
+				};
 
 			// Emit event
 			Self::deposit_event(Event::<T>::DepositClaimed(
@@ -712,10 +715,14 @@ pub mod pallet {
 			));
 
 			match deposit.extra {
-				ExtraData::None => {}
+				ExtraData::None => {},
 				ExtraData::DirectDeposit => {
-					T::Orderbook::deposit(deposit.recipient,deposit.asset_id, final_deposit_amount)?;
-				}
+					T::Orderbook::deposit(
+						deposit.recipient,
+						deposit.asset_id,
+						final_deposit_amount,
+					)?;
+				},
 			}
 			Ok(())
 		}
@@ -750,12 +757,13 @@ pub mod pallet {
 	}
 
 	impl<T: Config> polkadex_primitives::withdrawal::CrossChainWithdraw<T::AccountId> for Pallet<T> {
-		fn parachain_withdraw(user: T::AccountId,
-							  asset_id: AssetId,
-							  amount: u128,
-							  beneficiary: xcm::latest::MultiLocation,
-							  fee_asset_id: Option<AssetId>,
-							  fee_amount: Option<u128>
+		fn parachain_withdraw(
+			user: T::AccountId,
+			asset_id: AssetId,
+			amount: u128,
+			beneficiary: xcm::latest::MultiLocation,
+			fee_asset_id: Option<AssetId>,
+			fee_amount: Option<u128>,
 		) -> DispatchResult {
 			let network = 1;
 			let versioned_multilocation: xcm::VersionedMultiLocation = beneficiary.into();
@@ -770,7 +778,6 @@ pub mod pallet {
 				network,
 				false, // TODO: Let the user buy PDEX from OB?
 			)
-    }
-
+		}
 	}
 }

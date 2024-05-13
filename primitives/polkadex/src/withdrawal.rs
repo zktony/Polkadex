@@ -28,9 +28,11 @@ use crate::{AccountId, Balance};
 use serde::{Deserialize, Serialize};
 use xcm::latest::MultiLocation;
 
-#[derive(Encode, Decode, Clone, MaxEncodedLen, Debug, PartialEq, Eq, TypeInfo, Serialize, Deserialize)]
+#[derive(
+	Encode, Decode, Clone, MaxEncodedLen, Debug, PartialEq, Eq, TypeInfo, Serialize, Deserialize,
+)]
 pub enum WithdrawalDestination {
-	Polkadot(MultiLocation, Option<(AssetId, Balance)>)
+	Polkadot(MultiLocation, Option<(AssetId, Balance)>),
 }
 
 /// Defines withdrawal structure.
@@ -49,7 +51,7 @@ pub struct Withdrawal<AccountId> {
 	/// State change identifier.
 	pub stid: u64,
 	/// Cross-chain withdrawal destination
-	pub destination: Option<WithdrawalDestination>
+	pub destination: Option<WithdrawalDestination>,
 }
 
 /// Defines payload item structure collected in `Withdrawals` structure.
@@ -74,15 +76,13 @@ pub struct Withdrawals {
 	pub nonce: u32,
 }
 
-
 pub trait CrossChainWithdraw<AccountId> {
 	fn parachain_withdraw(
 		user: AccountId,
 		asset_id: AssetId,
-	  amount: u128,
-	  beneficiary: xcm::latest::MultiLocation,
-	  fee_asset_id: Option<AssetId>,
-	  fee_amount: Option<u128>
+		amount: u128,
+		beneficiary: xcm::latest::MultiLocation,
+		fee_asset_id: Option<AssetId>,
+		fee_amount: Option<u128>,
 	) -> DispatchResult;
-
 }

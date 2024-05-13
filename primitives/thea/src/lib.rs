@@ -23,8 +23,8 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
-pub mod types;
 pub mod extras;
+pub mod types;
 
 pub use crate::types::Message;
 use parity_scale_codec::{Decode, Encode};

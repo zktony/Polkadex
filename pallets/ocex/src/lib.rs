@@ -55,12 +55,12 @@ use frame_support::traits::fungible::Inspect as InspectNative;
 use frame_system::pallet_prelude::BlockNumberFor;
 use orderbook_primitives::lmp::LMPMarketConfig;
 use orderbook_primitives::ocex::TradingPairConfig;
+use orderbook_primitives::traits::OrderbookOperations;
 use orderbook_primitives::{
 	types::{AccountAsset, TradingPair},
 	SnapshotSummary, ValidatorSet, GENESIS_AUTHORITY_SET_ID,
 };
 use sp_std::vec::Vec;
-use orderbook_primitives::traits::OrderbookOperations;
 
 #[cfg(test)]
 mod mock;
@@ -170,6 +170,7 @@ pub mod pallet {
 	};
 	use parity_scale_codec::Compact;
 	use polkadex_primitives::auction::AuctionInfo;
+	use polkadex_primitives::withdrawal::CrossChainWithdraw;
 	use polkadex_primitives::{assets::AssetId, withdrawal::Withdrawal, ProxyLimit, UNIT_BALANCE};
 	use rust_decimal::{prelude::ToPrimitive, Decimal};
 	use sp_application_crypto::RuntimeAppPublic;
@@ -178,7 +179,6 @@ pub mod pallet {
 		SaturatedConversion,
 	};
 	use sp_std::vec::Vec;
-	use polkadex_primitives::withdrawal::CrossChainWithdraw;
 
 	type WithdrawalsMap<T> = BTreeMap<
 		<T as frame_system::Config>::AccountId,
@@ -1319,7 +1319,6 @@ pub mod pallet {
 		StorageValue<_, AuctionInfo<T::AccountId, BalanceOf<T>>, OptionQuery>;
 
 	impl<T: crate::pallet::Config> crate::pallet::Pallet<T> {
-
 		pub fn do_withdraw(
 			snapshot_id: u64,
 			mut withdrawal_vector: Vec<Withdrawal<T::AccountId>>,
@@ -1823,9 +1822,11 @@ pub mod pallet {
 		fn on_idle_withdrawal_processor(
 			withdrawal: Withdrawal<<T as frame_system::Config>::AccountId>,
 		) -> DispatchResult {
-
-			let converted_withdrawal = withdrawal.amount.saturating_mul(Decimal::from(UNIT_BALANCE))
-				.to_u128().ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
+			let converted_withdrawal = withdrawal
+				.amount
+				.saturating_mul(Decimal::from(UNIT_BALANCE))
+				.to_u128()
+				.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
 
 			Self::transfer_asset(
 				&Self::get_pallet_account(),
@@ -1837,26 +1838,27 @@ pub mod pallet {
 			// on_idle_withdrawal_processor is called in a transacitonal manner so it is okay.
 			if let Some(destination) = withdrawal.destination {
 				match destination {
-					WithdrawalDestination::Polkadot(multi_location,None) => {
+					WithdrawalDestination::Polkadot(multi_location, None) => {
 						T::CrossChainGadget::parachain_withdraw(
 							withdrawal.main_account,
 							withdrawal.asset,
 							converted_withdrawal,
 							multi_location,
 							None,
-							None
+							None,
 						)?
 					},
-					WithdrawalDestination::Polkadot(multi_location,Some((fee_asset_id,fee_amount))) => {
-						T::CrossChainGadget::parachain_withdraw(
-							withdrawal.main_account,
-							withdrawal.asset,
-							converted_withdrawal,
-							multi_location,
-							Some(fee_asset_id),
-							Some(fee_amount)
-						)?
-					}
+					WithdrawalDestination::Polkadot(
+						multi_location,
+						Some((fee_asset_id, fee_amount)),
+					) => T::CrossChainGadget::parachain_withdraw(
+						withdrawal.main_account,
+						withdrawal.asset,
+						converted_withdrawal,
+						multi_location,
+						Some(fee_asset_id),
+						Some(fee_amount),
+					)?,
 				}
 			}
 			Ok(())
@@ -2428,9 +2430,8 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	fn on_disabled(_i: u32) {}
 }
 
-
 impl<T: Config> OrderbookOperations<T::AccountId> for Pallet<T> {
 	fn deposit(main: T::AccountId, asset: AssetId, amount: u128) -> DispatchResult {
-		Self::do_deposit(main, asset,amount.saturated_into())
+		Self::do_deposit(main, asset, amount.saturated_into())
 	}
 }

@@ -28,8 +28,8 @@ use sp_runtime::Percent;
 use sp_std::vec::Vec;
 use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap};
 
-use crate::{Network, ValidatorSetId};
 use crate::extras::ExtraData;
+use crate::{Network, ValidatorSetId};
 
 /// Defines the message structure.
 #[derive(

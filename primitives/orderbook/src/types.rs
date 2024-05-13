@@ -345,10 +345,10 @@ use core::{
 };
 use frame_support::{Deserialize, Serialize};
 use parity_scale_codec::alloc::string::ToString;
+use polkadex_primitives::withdrawal::WithdrawalDestination;
 use scale_info::prelude::string::String;
 use sp_runtime::MultiSignature;
 use sp_std::collections::btree_map::BTreeMap;
-use polkadex_primitives::withdrawal::WithdrawalDestination;
 
 /// Withdraw payload requested by user.
 #[derive(Encode, Decode, Clone, Debug, PartialEq, Eq, TypeInfo, Serialize, Deserialize)]
@@ -360,7 +360,7 @@ pub struct WithdrawPayloadCallByUser {
 	/// Timestamp of the request.
 	pub timestamp: i64,
 	/// Cross-chain destination ( this field is set for direct withdrawal )
-	pub destination_network: Option<WithdrawalDestination>
+	pub destination_network: Option<WithdrawalDestination>,
 }
 
 /// Defines possible order sides variants.
