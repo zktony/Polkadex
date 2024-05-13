@@ -1090,6 +1090,7 @@ mod tests {
 		let signature = serde_json::from_str::<MultiSignature>(signature_payload_str).unwrap();
 		const MAIN_ACCOUNT: &str = "5FYr5g1maSsAAw6w98xdAytZ6MEQ8sNPgp3PNLgy9o79kMug";
 		let request = WithdrawalRequest {
+			id: Default::default(),
 			payload: payload.clone(),
 			main: AccountId::from_str(MAIN_ACCOUNT).unwrap(),
 			proxy: AccountId::from_str(MAIN_ACCOUNT).unwrap(),

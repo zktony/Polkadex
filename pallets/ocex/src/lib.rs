@@ -1120,7 +1120,7 @@ pub mod pallet {
 		/// AllowlistedTokenRemoved
 		AllowlistedTokenRemoved(AssetId),
 		/// Withdrawal ready to claim
-		WithdrawalReady(u64, Withdrawal<T::AccountId>),
+		WithdrawalReady(u64, Box<Withdrawal<T::AccountId>>),
 		/// Exchange state has been updated
 		ExchangeStateUpdated(bool),
 		/// DisputePeriod has been updated
@@ -1336,7 +1336,7 @@ pub mod pallet {
 						failed_withdrawals.push(withdrawal.to_owned());
 						Self::deposit_event(Event::WithdrawalReady(
 							snapshot_id,
-							withdrawal.to_owned(),
+							Box::from(withdrawal.to_owned()),
 						));
 					}
 				}

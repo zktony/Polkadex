@@ -1998,11 +1998,13 @@ fn get_dummy_snapshot(
 	let mut withdrawals = vec![];
 	for _ in 0..withdrawals_len {
 		withdrawals.push(Withdrawal {
+			id: Default::default(),
 			main_account: main.clone(),
 			amount: Decimal::one(),
 			asset: AssetId::Polkadex,
 			fees: Default::default(),
 			stid: 0,
+			destination: None,
 		})
 	}
 

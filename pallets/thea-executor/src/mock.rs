@@ -205,6 +205,7 @@ impl thea_executor::Config for Test {
 	type NativeAssetId = PolkadexAssetId;
 	type TheaPalletId = TheaPalletId;
 	type Swap = AssetConversion;
+	type Orderbook = ();
 	type WithdrawalSize = WithdrawalSize;
 	type ExistentialDeposit = ExistentialDeposit;
 	type ParaId = ParaId;

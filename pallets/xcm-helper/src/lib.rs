@@ -716,7 +716,7 @@ pub mod pallet {
 							} else {
 								failed_withdrawal.push(withdrawal)
 							}
-						} else if Self::handle_deposit(withdrawal.clone().into(), destination)
+						} else if Self::handle_deposit(withdrawal.clone(), destination)
 							.is_err()
 						{
 							failed_withdrawal.push(withdrawal);

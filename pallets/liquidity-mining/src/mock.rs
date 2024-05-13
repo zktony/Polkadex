@@ -145,6 +145,7 @@ impl ocex::Config for Test {
 	type CrowdSourceLiqudityMining = LiqudityMining;
 	type OBWithdrawalLimit = OBWithdrawalLimit;
 	type WeightInfo = ocex::weights::WeightInfo<Test>;
+	type CrossChainGadget = ();
 }
 
 parameter_types! {

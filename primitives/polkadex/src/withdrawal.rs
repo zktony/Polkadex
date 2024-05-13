@@ -89,3 +89,12 @@ pub trait CrossChainWithdraw<AccountId> {
 		fee_amount: Option<u128>,
 	) -> DispatchResult;
 }
+
+// Stub for CrossChainWithdraw
+impl<AccountId> CrossChainWithdraw<AccountId> for () {
+	fn parachain_withdraw(_user: AccountId, _asset_id: AssetId, _amount: u128,
+						  _beneficiary: MultiLocation, _fee_asset_id: Option<AssetId>,
+						  _fee_amount: Option<u128>) -> DispatchResult {
+		Ok(())
+	}
+}
