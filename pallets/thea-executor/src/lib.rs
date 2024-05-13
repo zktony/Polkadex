@@ -776,7 +776,7 @@ pub mod pallet {
 				fee_amount,
 				true,
 				network,
-				false, // TODO: Let the user buy PDEX from OB?
+				true,
 			)
 		}
 	}
