@@ -761,7 +761,7 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> polkadex_primitives::withdrawal::CrossChainWithdraw<T::AccountId> for Pallet<T> {
+	impl<T: Config> polkadex_primitives::traits::CrossChainWithdraw<T::AccountId> for Pallet<T> {
 		fn parachain_withdraw(
 			user: T::AccountId,
 			asset_id: AssetId,

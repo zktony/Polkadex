@@ -170,7 +170,7 @@ pub mod pallet {
 	};
 	use parity_scale_codec::Compact;
 	use polkadex_primitives::auction::AuctionInfo;
-	use polkadex_primitives::withdrawal::CrossChainWithdraw;
+	use polkadex_primitives::traits::CrossChainWithdraw;
 	use polkadex_primitives::{assets::AssetId, withdrawal::Withdrawal, ProxyLimit, UNIT_BALANCE};
 	use rust_decimal::{prelude::ToPrimitive, Decimal};
 	use sp_application_crypto::RuntimeAppPublic;

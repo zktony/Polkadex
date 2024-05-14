@@ -20,7 +20,6 @@
 
 use crate::assets::AssetId;
 use codec::{Decode, Encode, MaxEncodedLen};
-use frame_support::pallet_prelude::DispatchResult;
 use primitive_types::H256;
 use rust_decimal::Decimal;
 use scale_info::TypeInfo;
@@ -77,31 +76,4 @@ pub struct Withdrawals {
 	pub withdrawals: sp_std::vec::Vec<WithdrawalPayload>,
 	/// Nonce (identifier).
 	pub nonce: u32,
-}
-
-pub trait CrossChainWithdraw<AccountId> {
-	fn parachain_withdraw(
-		user: AccountId,
-		asset_id: AssetId,
-		amount: u128,
-		beneficiary: xcm::latest::MultiLocation,
-		fee_asset_id: Option<AssetId>,
-		fee_amount: Option<u128>,
-		id: Vec<u8>
-	) -> DispatchResult;
-}
-
-// Stub for CrossChainWithdraw
-impl<AccountId> CrossChainWithdraw<AccountId> for () {
-	fn parachain_withdraw(
-		_user: AccountId,
-		_asset_id: AssetId,
-		_amount: u128,
-		_beneficiary: MultiLocation,
-		_fee_asset_id: Option<AssetId>,
-		_fee_amount: Option<u128>,
-		_id: Vec<u8>
-	) -> DispatchResult {
-		Ok(())
-	}
 }
