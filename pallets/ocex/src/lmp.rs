@@ -42,7 +42,6 @@ use rust_decimal::{
 	Decimal,
 };
 use sp_core::crypto::{Ss58AddressFormat, Ss58Codec};
-use sp_core::H160;
 use sp_runtime::{traits::BlockNumberProvider, DispatchError, SaturatedConversion};
 use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
 
@@ -484,7 +483,7 @@ impl<T: Config> LiquidityMining<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			.to_u128()
 			.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
 		Self::do_deposit(
-			H160::random(),
+			Self::new_random_id(None),
 			pool.clone(),
 			market.base,
 			base_amount_in_u128.saturated_into(),
@@ -494,7 +493,7 @@ impl<T: Config> LiquidityMining<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			.to_u128()
 			.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
 		Self::do_deposit(
-			H160::random(),
+			Self::new_random_id(None),
 			pool.clone(),
 			market.quote,
 			quote_amount_in_u128.saturated_into(),

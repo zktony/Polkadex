@@ -132,7 +132,7 @@ pub mod pallet {
 	use frame_system::pallet_prelude::*;
 
 	use polkadex_primitives::Resolver;
-	use sp_core::sp_std;
+	use sp_core::{sp_std, H160};
 	use sp_runtime::{traits::Convert, SaturatedConversion};
 
 	use crate::MAXIMUM_BLOCK_WEIGHT;
@@ -264,8 +264,8 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
-		/// parameters. [recipient, multiasset, asset_id]
-		AssetDeposited(Vec<u8>, Box<MultiLocation>, Box<MultiAsset>, polkadex_primitives::AssetId),
+		/// parameters. [id, recipient, multiasset, asset_id]
+		AssetDeposited(H160, Box<MultiLocation>, Box<MultiAsset>, polkadex_primitives::AssetId),
 		AssetWithdrawn(T::AccountId, Box<MultiAsset>),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(polkadex_primitives::AssetId),
@@ -402,7 +402,7 @@ pub mod pallet {
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
 			let deposit: Deposit<T::AccountId> = Deposit {
-				id: Self::new_random_id(),
+				id: Self::new_random_id(None),
 				recipient,
 				asset_id,
 				amount,
@@ -410,7 +410,7 @@ pub mod pallet {
 			};
 
 			let parachain_network_id = T::SubstrateNetworkId::get();
-			let unique_id = deposit.id.clone();
+			let unique_id = deposit.id;
 			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
 				.map_err(|_| XcmError::Trap(102))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(
@@ -460,14 +460,19 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Generates a new random id for withdrawals
-		fn new_random_id() -> Vec<u8> {
+		/// Generates a new random id for withdrawals with an optional prefix
+		fn new_random_id(prefix: Option<[u8; 4]>) -> H160 {
 			let mut nonce = <RandomnessNonce<T>>::get();
 			nonce = nonce.wrapping_add(1);
 			<RandomnessNonce<T>>::put(nonce);
 			let network_id = T::SubstrateNetworkId::get();
-			let entropy = sp_io::hashing::blake2_256(&((network_id, nonce).encode()));
-			entropy.to_vec()
+			let mut entropy: [u8; 20] = [0u8; 20];
+			if let Some(prefix) = prefix {
+				entropy[0..4].copy_from_slice(&prefix);
+			}
+			entropy[3..]
+				.copy_from_slice(&sp_io::hashing::blake2_128(&((network_id, nonce).encode())));
+			H160::from(entropy)
 		}
 
 		/// Get Pallet Id

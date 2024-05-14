@@ -736,7 +736,7 @@ pub mod pallet {
 			#[pallet::compact] amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let user = ensure_signed(origin)?;
-			Self::do_deposit(H160::random(), user, asset, amount)?;
+			Self::do_deposit(Self::new_random_id(None), user, asset, amount)?;
 			Ok(())
 		}
 
@@ -1321,6 +1321,16 @@ pub mod pallet {
 		StorageValue<_, AuctionInfo<T::AccountId, BalanceOf<T>>, OptionQuery>;
 
 	impl<T: crate::pallet::Config> crate::pallet::Pallet<T> {
+		pub fn new_random_id(prefix: Option<[u8; 4]>) -> H160 {
+			let mut entropy: [u8; 20] = [0u8; 20];
+			if let Some(prefix) = prefix {
+				entropy[0..4].copy_from_slice(&prefix);
+			}
+			let current_blk = frame_system::Pallet::<T>::current_block_number();
+			entropy[3..].copy_from_slice(&sp_io::hashing::blake2_128(&((current_blk).encode())));
+			H160::from(entropy)
+		}
+
 		pub fn do_withdraw(
 			snapshot_id: u64,
 			mut withdrawal_vector: Vec<Withdrawal<T::AccountId>>,
@@ -1850,7 +1860,7 @@ pub mod pallet {
 							multi_location,
 							None,
 							None,
-							withdrawal.id.encode(),
+							withdrawal.id,
 						)?
 					},
 					WithdrawalDestination::Polkadot(
@@ -1863,7 +1873,7 @@ pub mod pallet {
 						multi_location,
 						Some(fee_asset_id),
 						Some(fee_amount),
-						withdrawal.id.encode(),
+						withdrawal.id,
 					)?,
 				}
 			}

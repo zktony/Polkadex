@@ -31,6 +31,7 @@ use sp_core::H256;
 use sp_runtime::traits::Verify;
 use sp_std::cmp::Ordering;
 
+use sp_core::H160;
 #[cfg(not(feature = "std"))]
 use sp_std::fmt::{Display, Formatter};
 #[cfg(not(feature = "std"))]
@@ -271,7 +272,7 @@ pub enum UserActions<AccountId: Ord + Codec + Clone + TypeInfo> {
 #[derive(Clone, Debug, Decode, Encode, TypeInfo, PartialEq, Serialize, Deserialize)]
 pub struct WithdrawalRequest<AccountId: Codec + Clone + TypeInfo> {
 	/// Withdrawal ID
-	pub id: H256,
+	pub id: H160,
 	/// Signature.
 	pub signature: Signature,
 	/// Payload.

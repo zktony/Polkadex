@@ -20,9 +20,9 @@
 
 use crate::assets::AssetId;
 use codec::{Decode, Encode, MaxEncodedLen};
-use primitive_types::H256;
 use rust_decimal::Decimal;
 use scale_info::TypeInfo;
+use sp_core::H160;
 
 use crate::{AccountId, Balance};
 use serde::{Deserialize, Serialize};
@@ -41,7 +41,7 @@ pub enum WithdrawalDestination {
 )]
 pub struct Withdrawal<AccountId> {
 	/// Withdrawal ID
-	pub id: H256,
+	pub id: H160,
 	/// Main account identifier.
 	pub main_account: AccountId,
 	/// Amount of withdrawal.

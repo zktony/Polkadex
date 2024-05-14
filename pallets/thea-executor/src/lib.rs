@@ -72,7 +72,7 @@ pub mod pallet {
 	use thea_primitives::types::Withdraw;
 	use thea_primitives::{
 		types::{AssetMetadata, Deposit},
-		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor,
+		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
 	};
 	use xcm::VersionedMultiLocation;
 
@@ -510,6 +510,20 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
+		/// Generates a new random id for withdrawals with an optional prefix
+		fn new_random_id(prefix: Option<[u8; 4]>) -> H160 {
+			let mut nonce = <RandomnessNonce<T>>::get();
+			nonce = nonce.wrapping_add(1);
+			<RandomnessNonce<T>>::put(nonce);
+			let mut entropy: [u8; 20] = [0u8; 20];
+			if let Some(prefix) = prefix {
+				entropy[0..4].copy_from_slice(&prefix);
+			}
+			entropy[3..]
+				.copy_from_slice(&sp_io::hashing::blake2_128(&((NATIVE_NETWORK, nonce).encode())));
+			H160::from(entropy)
+		}
+
 		pub fn thea_account() -> T::AccountId {
 			T::TheaPalletId::get().into_account_truncating()
 		}
@@ -590,7 +604,7 @@ pub mod pallet {
 			}
 
 			let mut withdraw = Withdraw {
-				id: txid.unwrap_or(H160::random()),
+				id: txid.unwrap_or(Self::new_random_id(None)),
 				asset_id,
 				amount,
 				destination: beneficiary.clone(),
