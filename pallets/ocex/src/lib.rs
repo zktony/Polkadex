@@ -1327,7 +1327,7 @@ pub mod pallet {
 				entropy[0..4].copy_from_slice(&prefix);
 			}
 			let current_blk = frame_system::Pallet::<T>::current_block_number();
-			entropy[3..].copy_from_slice(&sp_io::hashing::blake2_128(&((current_blk).encode())));
+			entropy[4..].copy_from_slice(&sp_io::hashing::blake2_128(&((current_blk).encode())));
 			H160::from(entropy)
 		}
 

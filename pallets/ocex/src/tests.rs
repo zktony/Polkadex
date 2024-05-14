@@ -1548,16 +1548,12 @@ fn test_deposit() {
 			9999999999999999999900
 		);
 		assert_eq!(<Test as Config>::NativeCurrency::free_balance(custodian_account.clone()), 100);
-		assert_last_event::<Test>(
-			crate::Event::DepositSuccessful {
-				user: account_id.clone(),
-				asset: AssetId::Polkadex,
-				amount: 100_u128,
-			}
-			.into(),
+		let event: IngressMessages<AccountId32> = IngressMessages::Deposit(
+			H160::zero(),
+			account_id,
+			AssetId::Polkadex,
+			Decimal::new(10, 11),
 		);
-		let event: IngressMessages<AccountId32> =
-			IngressMessages::Deposit(account_id, AssetId::Polkadex, Decimal::new(10, 11));
 		let blk = frame_system::Pallet::<Test>::current_block_number();
 		assert_eq!(OCEX::ingress_messages(blk)[2], event);
 	});

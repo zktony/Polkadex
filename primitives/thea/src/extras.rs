@@ -22,7 +22,7 @@ pub fn extract_data_from_multilocation(
 			if network == Some(NetworkId::Polkadot) || network.is_none() {
 				Some((id, ExtraData::None))
 			} else {
-				return None;
+				None
 			}
 		},
 		// Direct deposit
@@ -33,9 +33,9 @@ pub fn extract_data_from_multilocation(
 			if network == Some(NetworkId::Polkadot) || network.is_none() {
 				Some((id, ExtraData::DirectDeposit))
 			} else {
-				return None;
+				None
 			}
 		},
-		_ => return None,
+		_ => None,
 	}
 }

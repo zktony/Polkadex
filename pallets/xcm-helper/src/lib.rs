@@ -476,7 +476,7 @@ pub mod pallet {
 			if let Some(prefix) = prefix {
 				entropy[0..4].copy_from_slice(&prefix);
 			}
-			entropy[3..]
+			entropy[4..]
 				.copy_from_slice(&sp_io::hashing::blake2_128(&((network_id, nonce).encode())));
 			H160::from(entropy)
 		}

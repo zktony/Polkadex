@@ -100,7 +100,7 @@ fn test_transfer_native_asset() {
 		// Verify
 		let pending_withdrawal = <PendingWithdrawals<Test>>::get(1);
 		let approved_withdraw = Withdraw {
-			id: Vec::from([179, 96, 16, 235, 40, 92, 21, 74, 140, 214]),
+			id: H160::zero(),
 			asset_id: asset_id.into(),
 			amount: 10_000_000_000_000u128,
 			destination: vec![1; 32],
@@ -130,7 +130,7 @@ fn test_deposit_with_valid_args_returns_ok() {
 		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		assert_ok!(TheaExecutor::set_withdrawal_fee(RuntimeOrigin::root(), 1, 0));
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
 			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,
@@ -328,7 +328,7 @@ fn test_resolve_deposit() {
 		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		Balances::set_balance(&recipient, 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
 			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,
@@ -349,7 +349,7 @@ fn test_deposit_without_account() {
 		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		Balances::set_balance(&TheaExecutor::thea_account(), 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
 			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000u128,
@@ -490,7 +490,7 @@ fn test_claim_deposit_returns_ok() {
 		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		Balances::set_balance(&recipient, 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
 			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,
@@ -516,7 +516,7 @@ fn test_claim_deposit_returns_asset_not_registered() {
 		));
 		Balances::set_balance(&recipient, 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
 			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,

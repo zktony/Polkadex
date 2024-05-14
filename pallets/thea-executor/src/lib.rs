@@ -263,7 +263,7 @@ pub mod pallet {
 				for (index, withdrawal) in withdrawals.iter().enumerate() {
 					Self::deposit_event(Event::<T>::WithdrawalSent(
 						network_id,
-						withdrawal.id.clone(),
+						withdrawal.id,
 						batch_nonce,
 						index as u8,
 					));
@@ -519,7 +519,7 @@ pub mod pallet {
 			if let Some(prefix) = prefix {
 				entropy[0..4].copy_from_slice(&prefix);
 			}
-			entropy[3..]
+			entropy[4..]
 				.copy_from_slice(&sp_io::hashing::blake2_128(&((NATIVE_NETWORK, nonce).encode())));
 			H160::from(entropy)
 		}

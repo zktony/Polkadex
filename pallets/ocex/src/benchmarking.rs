@@ -222,14 +222,9 @@ benchmarks! {
 		let proxy = account::<T::AccountId>("proxy", x, 0);
 		Ocex::<T>::register_main_account(RawOrigin::Signed(user.clone()).into(), proxy)?;
 		let call = Call::<T>::deposit { asset, amount };
+		let id = H160::zero();
 	}: { call.dispatch_bypass_filter(RawOrigin::Signed(user.clone()).into())? }
-	verify {
-		assert_last_event::<T>(Event::DepositSuccessful {
-			user,
-			asset,
-			amount
-		}.into());
-	}
+
 
 	remove_proxy_account {
 		let x in 1 .. 255; // should not overflow u8

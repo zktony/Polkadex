@@ -1033,6 +1033,7 @@ mod tests {
 	};
 	use polkadex_primitives::{AccountId, AssetId};
 	use rust_decimal::Decimal;
+	use sp_core::H160;
 	use sp_runtime::MultiSignature;
 	use std::collections::BTreeMap;
 	use std::str::FromStr;
@@ -1043,7 +1044,12 @@ mod tests {
 		let action = UserActions::BlockImport(
 			0,
 			BTreeMap::from([(
-				IngressMessages::Deposit(alice.clone(), AssetId::Asset(u128::MAX), Decimal::MAX),
+				IngressMessages::Deposit(
+					H160::zero(),
+					alice.clone(),
+					AssetId::Asset(u128::MAX),
+					Decimal::MAX,
+				),
 				EgressMessages::PriceOracle(Default::default()),
 			)]),
 			BTreeMap::from([(((AssetId::Polkadex, AssetId::Asset(u128::MAX)), Decimal::MAX))]),

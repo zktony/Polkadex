@@ -28,6 +28,7 @@ use frame_support::traits::{
 use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
 use parity_scale_codec::Decode;
 use polkadex_primitives::{AssetId, UNIT_BALANCE};
+use sp_core::H160;
 use sp_runtime::{traits::AccountIdConversion, SaturatedConversion};
 use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec, vec::Vec};
 use thea_primitives::types::Withdraw;
@@ -39,7 +40,7 @@ fn create_deposit<T: Config>(recipient: T::AccountId) -> Vec<Deposit<T::AccountI
 	let asset_id = AssetId::Asset(100);
 	for _i in 1..20 {
 		let deposit: Deposit<T::AccountId> = Deposit {
-			id: vec![],
+			id: H160::zero(),
 			recipient: recipient.clone(),
 			asset_id,
 			amount: 1_000_000_000_000,
@@ -141,7 +142,7 @@ benchmarks! {
 		let network_len: usize = x as usize;
 		let network_len: u8 = network_len as u8;
 		let withdrawal = Withdraw {
-			id: vec![],
+			id: H160::zero(),
 			asset_id: polkadex_primitives::AssetId::Asset(100),
 			amount: 1_000_000_000_000,
 			destination: vec![],
