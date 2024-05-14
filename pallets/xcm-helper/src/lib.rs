@@ -130,6 +130,7 @@ pub mod pallet {
 		__private::log,
 	};
 	use frame_system::pallet_prelude::*;
+	use thea_primitives::extras::extract_data_from_multilocation;
 
 	use polkadex_primitives::Resolver;
 	use sp_core::{sp_std, H160};
@@ -264,9 +265,11 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
-		/// parameters. [id, recipient, multiasset, asset_id]
+		/// parameters. [id, recipient, multi-asset, asset_id]
 		AssetDeposited(H160, Box<MultiLocation>, Box<MultiAsset>, polkadex_primitives::AssetId),
-		AssetWithdrawn(T::AccountId, Box<MultiAsset>),
+		/// Asset Withdraw using XCM
+		/// parameters. [id, asset_id]
+		AssetWithdrawn(H160, polkadex_primitives::AssetId),
 		/// New Asset Created [asset_id]
 		TheaAssetCreated(polkadex_primitives::AssetId),
 		/// Token Whitelisted For Xcm [token]
@@ -386,7 +389,10 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> TransactAsset for Pallet<T> {
+	impl<T: Config> TransactAsset for Pallet<T>
+	where
+		<T as frame_system::Config>::AccountId: From<[u8; 32]>,
+	{
 		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(
 			what: &MultiAsset,
@@ -395,18 +401,18 @@ pub mod pallet {
 		) -> xcm::latest::Result {
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
-			let recipient =
-				T::AccountIdConvert::convert_location(who).ok_or(XcmError::FailedToDecode)?;
-			// TODO: @zktony, check if multilocation is for direct deposit, then modify the extra
-			// 		field accordingly
+
+			let (recipient, extra) =
+				extract_data_from_multilocation(*who).ok_or(XcmError::FailedToDecode)?;
+
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
 			let deposit: Deposit<T::AccountId> = Deposit {
 				id: Self::new_random_id(None),
-				recipient,
+				recipient: recipient.into(),
 				asset_id,
 				amount,
-				extra: thea_primitives::extras::ExtraData::None,
+				extra,
 			};
 
 			let parachain_network_id = T::SubstrateNetworkId::get();
@@ -680,6 +686,12 @@ pub mod pallet {
 									{
 										failed_withdrawal.push(withdrawal.clone());
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+									} else {
+										// Deposit event
+										Self::deposit_event(Event::<T>::AssetWithdrawn(
+											withdrawal.id,
+											withdrawal.asset_id,
+										));
 									}
 								}
 							} else if let Some(asset) = Self::assets_mapping(withdrawal.asset_id) {
@@ -717,6 +729,12 @@ pub mod pallet {
 								{
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+								} else {
+									// Deposit event
+									Self::deposit_event(Event::<T>::AssetWithdrawn(
+										withdrawal.id,
+										withdrawal.asset_id,
+									))
 								}
 							} else {
 								failed_withdrawal.push(withdrawal)
