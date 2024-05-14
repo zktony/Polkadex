@@ -18,6 +18,7 @@
 
 use crate::types::TradingPair;
 use frame_support::dispatch::DispatchResult;
+use primitive_types::{H160};
 use polkadex_primitives::AssetId;
 use rust_decimal::Decimal;
 
@@ -119,12 +120,12 @@ pub trait VerifyExtensionSignature<AccountId> {
 
 pub trait OrderbookOperations<AccountId> {
 	/// Tries to deposit funds to orderbook
-	fn deposit(main: AccountId, asset: AssetId, amount: u128) -> DispatchResult;
+	fn deposit(id: H160, main: AccountId, asset: AssetId, amount: u128) -> DispatchResult;
 }
 
 // Stub for Orderbook trait
 impl<AccountId> OrderbookOperations<AccountId> for () {
-	fn deposit(_main: AccountId, _asset: AssetId, _amount: u128) -> DispatchResult {
+	fn deposit(_id: H160,_main: AccountId, _asset: AssetId, _amount: u128) -> DispatchResult {
 		Ok(())
 	}
 }

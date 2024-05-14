@@ -65,14 +65,14 @@ pub mod pallet {
 	use orderbook_primitives::traits::OrderbookOperations;
 	use pallet_asset_conversion::Swap;
 	use polkadex_primitives::{AssetId, Resolver};
-	use sp_core::{H160, H256};
+	use sp_core::{H160};
 	use sp_runtime::{traits::AccountIdConversion, Saturating};
 	use sp_std::vec::Vec;
 	use thea_primitives::extras::ExtraData;
 	use thea_primitives::types::Withdraw;
 	use thea_primitives::{
 		types::{AssetMetadata, Deposit},
-		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor, NATIVE_NETWORK,
+		Network, TheaBenchmarkHelper, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
 	use xcm::VersionedMultiLocation;
 
@@ -190,13 +190,13 @@ pub mod pallet {
 		/// Asset Metadata set ( config )
 		AssetMetadataSet(AssetMetadata),
 		/// Deposit Approved event ( Network, recipient, asset_id, amount, id))
-		DepositApproved(Network, T::AccountId, AssetId, u128, Vec<u8>),
+		DepositApproved(Network, T::AccountId, AssetId, u128, H160),
 		/// Deposit claimed event ( recipient, asset id, amount, id )
-		DepositClaimed(T::AccountId, AssetId, u128, Vec<u8>),
+		DepositClaimed(T::AccountId, AssetId, u128, H160),
 		/// Deposit failed event ( network, encoded deposit)
 		DepositFailed(Network, Vec<u8>),
 		/// Withdrawal Queued ( network, from, beneficiary, assetId, amount, id )
-		WithdrawalQueued(Network, T::AccountId, Vec<u8>, AssetId, u128, Vec<u8>),
+		WithdrawalQueued(Network, T::AccountId, Vec<u8>, AssetId, u128, H160),
 		/// Withdrawal Ready (Network id )
 		WithdrawalReady(Network),
 		/// Withdrawal Failed ( Network ,Vec<Withdrawal>)
@@ -208,7 +208,7 @@ pub mod pallet {
 		/// Native Token Burn event
 		NativeTokenBurned(T::AccountId, u128),
 		/// Withdrawal Sent (Network, Withdrawal Id,Batch Outgoing Nonce, Withdrawal Index)
-		WithdrawalSent(Network, Vec<u8>, u64, u8),
+		WithdrawalSent(Network, H160, u64, u8),
 	}
 
 	// Errors inform users that something went wrong.
@@ -510,15 +510,6 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Generates a new random id for withdrawals
-		fn new_random_id() -> Vec<u8> {
-			let mut nonce = <RandomnessNonce<T>>::get();
-			nonce = nonce.wrapping_add(1);
-			<RandomnessNonce<T>>::put(nonce);
-			let entropy = sp_io::hashing::blake2_256(&(NATIVE_NETWORK, nonce).encode());
-			let entropy = H256::from_slice(&entropy).0[..10].to_vec();
-			entropy.to_vec()
-		}
 		pub fn thea_account() -> T::AccountId {
 			T::TheaPalletId::get().into_account_truncating()
 		}
@@ -534,7 +525,7 @@ pub mod pallet {
 			pay_for_remaining: bool,
 			network: Network,
 			pay_with_tokens: bool,
-			txid: Option<Vec<u8>>
+			txid: Option<H160>
 		) -> Result<(), DispatchError> {
 			ensure!(beneficiary.len() <= 1000, Error::<T>::BeneficiaryTooLong);
 			ensure!(network != 0, Error::<T>::WrongNetwork);
@@ -599,7 +590,7 @@ pub mod pallet {
 			}
 
 			let mut withdraw = Withdraw {
-				id: txid.unwrap_or(Self::new_random_id()),
+				id: txid.unwrap_or(H160::random()),
 				asset_id,
 				amount,
 				destination: beneficiary.clone(),
@@ -615,7 +606,7 @@ pub mod pallet {
 				beneficiary,
 				asset_id,
 				amount,
-				withdraw.id.clone(),
+				withdraw.id,
 			));
 
 			// Convert back to origin decimals
@@ -723,6 +714,7 @@ pub mod pallet {
 				ExtraData::None => {},
 				ExtraData::DirectDeposit => {
 					T::Orderbook::deposit(
+						deposit.id,
 						deposit.recipient,
 						deposit.asset_id,
 						final_deposit_amount,
@@ -769,7 +761,7 @@ pub mod pallet {
 			beneficiary: xcm::latest::MultiLocation,
 			fee_asset_id: Option<AssetId>,
 			fee_amount: Option<u128>,
-			id: Vec<u8>
+			id: H160
 		) -> DispatchResult {
 			let network = 1;
 			let versioned_multilocation: xcm::VersionedMultiLocation = beneficiary.into();

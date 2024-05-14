@@ -53,6 +53,7 @@ use sp_std::{ops::Div, prelude::*};
 // Re-export pallet items so that they can be accessed from the crate namespace.
 use frame_support::traits::fungible::Inspect as InspectNative;
 use frame_system::pallet_prelude::BlockNumberFor;
+use sp_core::H160;
 use orderbook_primitives::lmp::LMPMarketConfig;
 use orderbook_primitives::ocex::TradingPairConfig;
 use orderbook_primitives::traits::OrderbookOperations;
@@ -735,7 +736,7 @@ pub mod pallet {
 			#[pallet::compact] amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let user = ensure_signed(origin)?;
-			Self::do_deposit(user, asset, amount)?;
+			Self::do_deposit(H160::random(), user, asset, amount)?;
 			Ok(())
 		}
 
@@ -1088,6 +1089,7 @@ pub mod pallet {
 			quote: AssetId,
 		},
 		DepositSuccessful {
+			id: H160,
 			user: T::AccountId,
 			asset: AssetId,
 			amount: BalanceOf<T>,
@@ -1706,6 +1708,7 @@ pub mod pallet {
 		}
 
 		pub fn do_deposit(
+			id: H160,
 			user: T::AccountId,
 			asset: AssetId,
 			amount: BalanceOf<T>,
@@ -1734,12 +1737,13 @@ pub mod pallet {
 			let current_blk = frame_system::Pallet::<T>::current_block_number();
 			<IngressMessages<T>>::mutate(current_blk, |ingress_messages| {
 				ingress_messages.push(orderbook_primitives::ingress::IngressMessages::Deposit(
+					id,
 					user.clone(),
 					asset,
 					converted_amount,
 				));
 			});
-			Self::deposit_event(Event::DepositSuccessful { user, asset, amount });
+			Self::deposit_event(Event::DepositSuccessful { id, user, asset, amount });
 			Ok(())
 		}
 
@@ -2433,7 +2437,7 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 }
 
 impl<T: Config> OrderbookOperations<T::AccountId> for Pallet<T> {
-	fn deposit(main: T::AccountId, asset: AssetId, amount: u128) -> DispatchResult {
-		Self::do_deposit(main, asset, amount.saturated_into())
+	fn deposit(id: H160, main: T::AccountId, asset: AssetId, amount: u128) -> DispatchResult {
+		Self::do_deposit(id, main, asset, amount.saturated_into())
 	}
 }

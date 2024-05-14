@@ -23,6 +23,7 @@ use parity_scale_codec::{Decode, Encode};
 use polkadex_primitives::{AssetId, UNIT_BALANCE};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
+use sp_core::H160;
 use sp_runtime::Percent;
 #[cfg(not(feature = "std"))]
 use sp_std::vec::Vec;
@@ -229,7 +230,7 @@ pub enum Destination {
 #[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
 pub struct Deposit<AccountId> {
 	/// Identifier of the deposit.
-	pub id: Vec<u8>, // Unique identifier
+	pub id: H160, // Unique identifier
 	/// Receiver of the deposit.
 	pub recipient: AccountId,
 	/// Asset identifier.
@@ -256,7 +257,7 @@ impl<AccountId> Deposit<AccountId> {
 #[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
 pub struct Withdraw {
 	/// Identifier of the withdrawal.
-	pub id: Vec<u8>,
+	pub id: H160,
 	// Unique identifier
 	/// Asset identifier.
 	pub asset_id: AssetId,

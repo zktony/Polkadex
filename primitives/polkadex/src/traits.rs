@@ -18,6 +18,7 @@
 
 //! Common traits and its stub implementation.
 use frame_support::dispatch::DispatchResult;
+use primitive_types::H160;
 use xcm::latest::MultiLocation;
 use crate::AssetId;
 
@@ -29,7 +30,7 @@ pub trait CrossChainWithdraw<AccountId> {
         beneficiary: xcm::latest::MultiLocation,
         fee_asset_id: Option<AssetId>,
         fee_amount: Option<u128>,
-        id: Vec<u8>
+        id: H160
     ) -> DispatchResult;
 }
 
@@ -42,7 +43,7 @@ impl<AccountId> CrossChainWithdraw<AccountId> for () {
         _beneficiary: MultiLocation,
         _fee_asset_id: Option<AssetId>,
         _fee_amount: Option<u128>,
-        _id: Vec<u8>
+        _id: H160
     ) -> DispatchResult {
         Ok(())
     }

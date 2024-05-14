@@ -309,7 +309,7 @@ impl<T: Config> Pallet<T> {
 
 		for message in messages {
 			match message {
-				IngressMessages::Deposit(main, asset, amt) => add_balance(
+				IngressMessages::Deposit(_,main, asset, amt) => add_balance(
 					state,
 					&Decode::decode(&mut &main.encode()[..])
 						.map_err(|_| "account id decode error")?,
