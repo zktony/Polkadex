@@ -306,6 +306,7 @@ pub mod pallet {
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
+				None
 			)?;
 			Ok(())
 		}
@@ -354,6 +355,7 @@ pub mod pallet {
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
+				None
 			)?;
 			Ok(())
 		}
@@ -433,6 +435,7 @@ pub mod pallet {
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
+				None
 			)?;
 			Ok(())
 		}
@@ -531,6 +534,7 @@ pub mod pallet {
 			pay_for_remaining: bool,
 			network: Network,
 			pay_with_tokens: bool,
+			txid: Option<Vec<u8>>
 		) -> Result<(), DispatchError> {
 			ensure!(beneficiary.len() <= 1000, Error::<T>::BeneficiaryTooLong);
 			ensure!(network != 0, Error::<T>::WrongNetwork);
@@ -595,7 +599,7 @@ pub mod pallet {
 			}
 
 			let mut withdraw = Withdraw {
-				id: Self::new_random_id(),
+				id: txid.unwrap_or(Self::new_random_id()),
 				asset_id,
 				amount,
 				destination: beneficiary.clone(),
@@ -765,6 +769,7 @@ pub mod pallet {
 			beneficiary: xcm::latest::MultiLocation,
 			fee_asset_id: Option<AssetId>,
 			fee_amount: Option<u128>,
+			id: Vec<u8>
 		) -> DispatchResult {
 			let network = 1;
 			let versioned_multilocation: xcm::VersionedMultiLocation = beneficiary.into();
@@ -778,6 +783,7 @@ pub mod pallet {
 				true,
 				network,
 				true,
+				Some(id)
 			)
 		}
 	}

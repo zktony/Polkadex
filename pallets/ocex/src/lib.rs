@@ -1846,6 +1846,7 @@ pub mod pallet {
 							multi_location,
 							None,
 							None,
+							withdrawal.id.encode()
 						)?
 					},
 					WithdrawalDestination::Polkadot(
@@ -1858,6 +1859,7 @@ pub mod pallet {
 						multi_location,
 						Some(fee_asset_id),
 						Some(fee_amount),
+						withdrawal.id.encode()
 					)?,
 				}
 			}
