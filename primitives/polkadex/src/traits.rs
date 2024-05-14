@@ -17,34 +17,34 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 //! Common traits and its stub implementation.
+use crate::AssetId;
 use frame_support::dispatch::DispatchResult;
 use primitive_types::H160;
 use xcm::latest::MultiLocation;
-use crate::AssetId;
 
 pub trait CrossChainWithdraw<AccountId> {
-    fn parachain_withdraw(
-        user: AccountId,
-        asset_id: AssetId,
-        amount: u128,
-        beneficiary: xcm::latest::MultiLocation,
-        fee_asset_id: Option<AssetId>,
-        fee_amount: Option<u128>,
-        id: H160
-    ) -> DispatchResult;
+	fn parachain_withdraw(
+		user: AccountId,
+		asset_id: AssetId,
+		amount: u128,
+		beneficiary: xcm::latest::MultiLocation,
+		fee_asset_id: Option<AssetId>,
+		fee_amount: Option<u128>,
+		id: H160,
+	) -> DispatchResult;
 }
 
 // Stub for CrossChainWithdraw
 impl<AccountId> CrossChainWithdraw<AccountId> for () {
-    fn parachain_withdraw(
-        _user: AccountId,
-        _asset_id: AssetId,
-        _amount: u128,
-        _beneficiary: MultiLocation,
-        _fee_asset_id: Option<AssetId>,
-        _fee_amount: Option<u128>,
-        _id: H160
-    ) -> DispatchResult {
-        Ok(())
-    }
+	fn parachain_withdraw(
+		_user: AccountId,
+		_asset_id: AssetId,
+		_amount: u128,
+		_beneficiary: MultiLocation,
+		_fee_asset_id: Option<AssetId>,
+		_fee_amount: Option<u128>,
+		_id: H160,
+	) -> DispatchResult {
+		Ok(())
+	}
 }

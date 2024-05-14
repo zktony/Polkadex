@@ -483,12 +483,22 @@ impl<T: Config> LiquidityMining<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			.saturating_mul(unit)
 			.to_u128()
 			.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
-		Self::do_deposit(H160::random(),pool.clone(), market.base, base_amount_in_u128.saturated_into())?;
+		Self::do_deposit(
+			H160::random(),
+			pool.clone(),
+			market.base,
+			base_amount_in_u128.saturated_into(),
+		)?;
 		let quote_amount_in_u128 = quote_amount
 			.saturating_mul(unit)
 			.to_u128()
 			.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
-		Self::do_deposit(H160::random(),pool.clone(), market.quote, quote_amount_in_u128.saturated_into())?;
+		Self::do_deposit(
+			H160::random(),
+			pool.clone(),
+			market.quote,
+			quote_amount_in_u128.saturated_into(),
+		)?;
 		let current_blk = frame_system::Pallet::<T>::current_block_number();
 		<IngressMessages<T>>::mutate(current_blk, |messages| {
 			messages.push(orderbook_primitives::ingress::IngressMessages::AddLiquidity(

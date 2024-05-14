@@ -65,7 +65,7 @@ pub mod pallet {
 	use orderbook_primitives::traits::OrderbookOperations;
 	use pallet_asset_conversion::Swap;
 	use polkadex_primitives::{AssetId, Resolver};
-	use sp_core::{H160};
+	use sp_core::H160;
 	use sp_runtime::{traits::AccountIdConversion, Saturating};
 	use sp_std::vec::Vec;
 	use thea_primitives::extras::ExtraData;
@@ -306,7 +306,7 @@ pub mod pallet {
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
-				None
+				None,
 			)?;
 			Ok(())
 		}
@@ -355,7 +355,7 @@ pub mod pallet {
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
-				None
+				None,
 			)?;
 			Ok(())
 		}
@@ -435,7 +435,7 @@ pub mod pallet {
 				pay_for_remaining,
 				network,
 				pay_with_tokens,
-				None
+				None,
 			)?;
 			Ok(())
 		}
@@ -525,7 +525,7 @@ pub mod pallet {
 			pay_for_remaining: bool,
 			network: Network,
 			pay_with_tokens: bool,
-			txid: Option<H160>
+			txid: Option<H160>,
 		) -> Result<(), DispatchError> {
 			ensure!(beneficiary.len() <= 1000, Error::<T>::BeneficiaryTooLong);
 			ensure!(network != 0, Error::<T>::WrongNetwork);
@@ -761,7 +761,7 @@ pub mod pallet {
 			beneficiary: xcm::latest::MultiLocation,
 			fee_asset_id: Option<AssetId>,
 			fee_amount: Option<u128>,
-			id: H160
+			id: H160,
 		) -> DispatchResult {
 			let network = 1;
 			let versioned_multilocation: xcm::VersionedMultiLocation = beneficiary.into();
@@ -775,7 +775,7 @@ pub mod pallet {
 				true,
 				network,
 				true,
-				Some(id)
+				Some(id),
 			)
 		}
 	}

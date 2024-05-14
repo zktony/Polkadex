@@ -18,8 +18,8 @@
 
 use crate::types::TradingPair;
 use frame_support::dispatch::DispatchResult;
-use primitive_types::{H160};
 use polkadex_primitives::AssetId;
+use primitive_types::H160;
 use rust_decimal::Decimal;
 
 pub trait LiquidityMiningCrowdSourcePallet<AccountId> {
@@ -125,7 +125,7 @@ pub trait OrderbookOperations<AccountId> {
 
 // Stub for Orderbook trait
 impl<AccountId> OrderbookOperations<AccountId> for () {
-	fn deposit(_id: H160,_main: AccountId, _asset: AssetId, _amount: u128) -> DispatchResult {
+	fn deposit(_id: H160, _main: AccountId, _asset: AssetId, _amount: u128) -> DispatchResult {
 		Ok(())
 	}
 }

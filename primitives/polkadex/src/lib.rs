@@ -26,8 +26,8 @@ pub mod assets;
 pub mod auction;
 pub mod fees;
 pub mod rewards;
-pub mod withdrawal;
 pub mod traits;
+pub mod withdrawal;
 
 pub use frame_support::storage::bounded_vec::BoundedVec;
 

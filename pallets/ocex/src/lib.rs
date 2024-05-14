@@ -53,7 +53,6 @@ use sp_std::{ops::Div, prelude::*};
 // Re-export pallet items so that they can be accessed from the crate namespace.
 use frame_support::traits::fungible::Inspect as InspectNative;
 use frame_system::pallet_prelude::BlockNumberFor;
-use sp_core::H160;
 use orderbook_primitives::lmp::LMPMarketConfig;
 use orderbook_primitives::ocex::TradingPairConfig;
 use orderbook_primitives::traits::OrderbookOperations;
@@ -61,6 +60,7 @@ use orderbook_primitives::{
 	types::{AccountAsset, TradingPair},
 	SnapshotSummary, ValidatorSet, GENESIS_AUTHORITY_SET_ID,
 };
+use sp_core::H160;
 use sp_std::vec::Vec;
 
 #[cfg(test)]
@@ -1850,7 +1850,7 @@ pub mod pallet {
 							multi_location,
 							None,
 							None,
-							withdrawal.id.encode()
+							withdrawal.id.encode(),
 						)?
 					},
 					WithdrawalDestination::Polkadot(
@@ -1863,7 +1863,7 @@ pub mod pallet {
 						multi_location,
 						Some(fee_asset_id),
 						Some(fee_amount),
-						withdrawal.id.encode()
+						withdrawal.id.encode(),
 					)?,
 				}
 			}
