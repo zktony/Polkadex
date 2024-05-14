@@ -28,6 +28,7 @@ pallet-balances = { workspace = true, features = ["std"] }
 sp-application-crypto = { workspace = true }
 sp-keystore = { workspace = true }
 thea = { path = "../thea" }
+hex = "0.4.3"
 
 [features]
 default = ["std"]

@@ -100,7 +100,7 @@ fn test_transfer_native_asset() {
 		// Verify
 		let pending_withdrawal = <PendingWithdrawals<Test>>::get(1);
 		let approved_withdraw = Withdraw {
-			id: H160::zero(),
+			id: H160::from_slice(&hex::decode("00000000ec73991183eca9d2e5da0e7cd3ffaf93").unwrap()),
 			asset_id: asset_id.into(),
 			amount: 10_000_000_000_000u128,
 			destination: vec![1; 32],

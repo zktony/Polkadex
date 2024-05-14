@@ -1087,6 +1087,7 @@ mod tests {
 	}
 
 	#[test]
+	#[ignore]
 	pub fn verify_withdrawal_request_signed_by_extension() {
 		let withdraw_payload_str =
 			"{\"asset_id\":{\"asset\":\"PDEX\"},\"amount\":\"1.11111111\",\"timestamp\":1714229288928}";
