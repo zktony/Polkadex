@@ -130,7 +130,7 @@ pub mod pallet {
 		__private::log,
 	};
 	use frame_system::pallet_prelude::*;
-	use thea_primitives::extras::extract_data_from_multilocation;
+	use thea_primitives::extras::{extract_data_from_multilocation, ExtraData};
 
 	use polkadex_primitives::Resolver;
 	use sp_core::{sp_std, H160};
@@ -265,8 +265,14 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
-		/// parameters. [id, recipient, multi-asset, asset_id]
-		AssetDeposited(H160, Box<MultiLocation>, Box<MultiAsset>, polkadex_primitives::AssetId),
+		/// parameters. [id, recipient, multi-asset, asset_id, extradata]
+		AssetDeposited(
+			H160,
+			Box<MultiLocation>,
+			Box<MultiAsset>,
+			polkadex_primitives::AssetId,
+			ExtraData,
+		),
 		/// Asset Withdraw using XCM
 		/// parameters. [id, asset_id]
 		AssetWithdrawn(H160, polkadex_primitives::AssetId),
@@ -424,6 +430,7 @@ pub mod pallet {
 				Box::new(*who),
 				Box::new(what.clone()),
 				asset_id,
+				extra,
 			));
 			Ok(())
 		}
