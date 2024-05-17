@@ -418,7 +418,7 @@ pub mod pallet {
 				recipient: recipient.into(),
 				asset_id,
 				amount,
-				extra,
+				extra: extra.clone(),
 			};
 
 			let parachain_network_id = T::SubstrateNetworkId::get();
