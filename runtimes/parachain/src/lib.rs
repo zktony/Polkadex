@@ -480,7 +480,7 @@ impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = LocationToAccountId;
 	type Assets = Assets;
-	type AssetId = u128;
+	type AssetId = polkadex_primitives::AssetId;
 	type Currency = Balances;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
 	type Executor = TheaMessageHandler;

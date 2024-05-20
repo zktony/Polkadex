@@ -127,8 +127,12 @@ impl<T: Config> Pallet<T> {
 				let ingress_msgs =
 					<IngressMessages<T>>::get(blk.saturated_into::<BlockNumberFor<T>>());
 				for msg in ingress_msgs {
-					if let orderbook_primitives::ingress::IngressMessages::Deposit(_, asset, amt) =
-						msg
+					if let orderbook_primitives::ingress::IngressMessages::Deposit(
+						_,
+						_,
+						asset,
+						amt,
+					) = msg
 					{
 						onchain_inventory
 							.entry(asset)

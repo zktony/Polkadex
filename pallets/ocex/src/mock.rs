@@ -149,6 +149,7 @@ impl Config for Test {
 	type CrowdSourceLiqudityMining = LiqudityMining;
 	type WeightInfo = crate::weights::WeightInfo<Test>;
 	type OBWithdrawalLimit = OBWithdrawalLimit;
+	type CrossChainGadget = ();
 }
 
 parameter_types! {

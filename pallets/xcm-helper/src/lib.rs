@@ -130,15 +130,16 @@ pub mod pallet {
 		__private::log,
 	};
 	use frame_system::pallet_prelude::*;
+	use thea_primitives::extras::{extract_data_from_multilocation, ExtraData};
 
 	use polkadex_primitives::Resolver;
-	use sp_core::sp_std;
+	use sp_core::{sp_std, H160};
 	use sp_runtime::{traits::Convert, SaturatedConversion};
 
 	use crate::MAXIMUM_BLOCK_WEIGHT;
 	use sp_std::{boxed::Box, vec, vec::Vec};
 	use thea_primitives::{
-		types::{Deposit, NewWithdraw, Withdraw},
+		types::{Deposit, Withdraw},
 		Network, TheaIncomingExecutor, TheaOutgoingExecutor,
 	};
 	use xcm::{
@@ -163,14 +164,18 @@ pub mod pallet {
 
 	pub trait AssetIdConverter {
 		/// Converts AssetId to MultiLocation
-		fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation>;
+		fn convert_asset_id_to_location(
+			asset_id: polkadex_primitives::AssetId,
+		) -> Option<MultiLocation>;
 		/// Converts Location to AssetId
-		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128>;
+		fn convert_location_to_asset_id(
+			location: MultiLocation,
+		) -> Option<polkadex_primitives::AssetId>;
 	}
 
 	pub trait WhitelistedTokenHandler {
 		/// Check if token is whitelisted
-		fn check_whitelisted_token(asset_id: u128) -> bool;
+		fn check_whitelisted_token(asset_id: polkadex_primitives::AssetId) -> bool;
 	}
 
 	/// Configure the pallet by specifying the parameters and types on which it depends.
@@ -193,8 +198,7 @@ pub mod pallet {
 			+ MaybeSerializeDeserialize
 			+ MaxEncodedLen
 			+ Into<<<Self as Config>::Assets as Inspect<Self::AccountId>>::AssetId>
-			+ From<u128>
-			+ Into<u128>;
+			+ From<polkadex_primitives::AssetId>;
 		/// Balances Pallet
 		type Currency: frame_support::traits::tokens::fungible::Mutate<Self::AccountId>
 			+ frame_support::traits::tokens::fungible::Inspect<Self::AccountId>;
@@ -226,33 +230,25 @@ pub mod pallet {
 	pub(super) type PendingWithdrawals<T: Config> =
 		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
-	/// Pending Withdrawals
-	#[pallet::storage]
-	#[pallet::getter(fn get_new_pending_withdrawals)]
-	pub(super) type NewPendingWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<NewWithdraw>, ValueQuery>;
-
 	/// Failed Withdrawals
 	#[pallet::storage]
 	#[pallet::getter(fn get_failed_withdrawals)]
 	pub(super) type FailedWithdrawals<T: Config> =
 		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<Withdraw>, ValueQuery>;
 
-	/// Failed Withdrawals
-	#[pallet::storage]
-	#[pallet::getter(fn get_new_failed_withdrawals)]
-	pub(super) type NewFailedWithdrawals<T: Config> =
-		StorageMap<_, Blake2_128Concat, BlockNumberFor<T>, Vec<NewWithdraw>, ValueQuery>;
-
 	/// Asset mapping from u128 asset to multi asset.
+	/// 	// TODO: @zktony migrate from u128 to AssetId
 	#[pallet::storage]
 	#[pallet::getter(fn assets_mapping)]
-	pub type ParachainAssets<T: Config> = StorageMap<_, Identity, u128, AssetId, OptionQuery>;
+	pub type ParachainAssets<T: Config> =
+		StorageMap<_, Identity, polkadex_primitives::AssetId, AssetId, OptionQuery>;
 
 	/// Whitelist Tokens
+	/// // TODO: @zktony migrate from u128 to AssetId
 	#[pallet::storage]
 	#[pallet::getter(fn get_whitelisted_tokens)]
-	pub type WhitelistedTokens<T: Config> = StorageValue<_, Vec<u128>, ValueQuery>;
+	pub type WhitelistedTokens<T: Config> =
+		StorageValue<_, Vec<polkadex_primitives::AssetId>, ValueQuery>;
 
 	/// Nonce used to generate randomness for txn id
 	#[pallet::storage]
@@ -269,19 +265,27 @@ pub mod pallet {
 	#[pallet::generate_deposit(pub(super) fn deposit_event)]
 	pub enum Event<T: Config> {
 		/// Asset Deposited from XCM
-		/// parameters. [recipient, multiasset, asset_id]
-		AssetDeposited(Box<MultiLocation>, Box<MultiAsset>, u128),
-		AssetWithdrawn(T::AccountId, Box<MultiAsset>),
+		/// parameters. [id, recipient, multi-asset, asset_id, extradata]
+		AssetDeposited(
+			H160,
+			Box<MultiLocation>,
+			Box<MultiAsset>,
+			polkadex_primitives::AssetId,
+			ExtraData,
+		),
+		/// Asset Withdraw using XCM
+		/// parameters. [id, asset_id]
+		AssetWithdrawn(H160, polkadex_primitives::AssetId),
 		/// New Asset Created [asset_id]
-		TheaAssetCreated(u128),
+		TheaAssetCreated(polkadex_primitives::AssetId),
 		/// Token Whitelisted For Xcm [token]
-		TokenWhitelistedForXcm(u128),
+		TokenWhitelistedForXcm(polkadex_primitives::AssetId),
 		/// Xcm Fee Transferred [recipient, amount]
 		XcmFeeTransferred(T::AccountId, u128),
 		/// Native asset id mapping is registered
-		NativeAssetIdMappingRegistered(u128, Box<AssetId>),
+		NativeAssetIdMappingRegistered(polkadex_primitives::AssetId, Box<AssetId>),
 		/// Whitelisted Token removed
-		WhitelistedTokenRemoved(u128),
+		WhitelistedTokenRemoved(polkadex_primitives::AssetId),
 	}
 
 	// Errors inform users that something went wrong.
@@ -322,7 +326,6 @@ pub mod pallet {
 	#[pallet::hooks]
 	impl<T: Config> Hooks<BlockNumberFor<T>> for Pallet<T> {
 		fn on_initialize(n: BlockNumberFor<T>) -> Weight {
-			Self::handle_old_pending_withdrawals(n);
 			Self::handle_new_pending_withdrawals(n);
 			// Only update the storage if vector is not empty
 			// TODO: We are currently over estimating the weight here to 1/4th of total block time
@@ -386,13 +389,16 @@ pub mod pallet {
 		}
 	}
 
-	impl<T: Config> Convert<u128, Option<MultiLocation>> for Pallet<T> {
-		fn convert(asset_id: u128) -> Option<MultiLocation> {
+	impl<T: Config> Convert<polkadex_primitives::AssetId, Option<MultiLocation>> for Pallet<T> {
+		fn convert(asset_id: polkadex_primitives::AssetId) -> Option<MultiLocation> {
 			Self::convert_asset_id_to_location(asset_id)
 		}
 	}
 
-	impl<T: Config> TransactAsset for Pallet<T> {
+	impl<T: Config> TransactAsset for Pallet<T>
+	where
+		<T as frame_system::Config>::AccountId: From<[u8; 32]>,
+	{
 		/// Generate Ingress Message for new Deposit
 		fn deposit_asset(
 			what: &MultiAsset,
@@ -401,25 +407,30 @@ pub mod pallet {
 		) -> xcm::latest::Result {
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
-			let recipient =
-				T::AccountIdConvert::convert_location(who).ok_or(XcmError::FailedToDecode)?;
+
+			let (recipient, extra) =
+				extract_data_from_multilocation(*who).ok_or(XcmError::FailedToDecode)?;
+
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
 			let deposit: Deposit<T::AccountId> = Deposit {
-				id: Self::new_random_id(),
-				recipient,
+				id: Self::new_random_id(None),
+				recipient: recipient.into(),
 				asset_id,
 				amount,
-				extra: Vec::new(),
+				extra: extra.clone(),
 			};
 
 			let parachain_network_id = T::SubstrateNetworkId::get();
+			let unique_id = deposit.id;
 			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
 				.map_err(|_| XcmError::Trap(102))?;
 			Self::deposit_event(Event::<T>::AssetDeposited(
+				unique_id,
 				Box::new(*who),
 				Box::new(what.clone()),
 				asset_id,
+				extra,
 			));
 			Ok(())
 		}
@@ -462,14 +473,19 @@ pub mod pallet {
 	}
 
 	impl<T: Config> Pallet<T> {
-		/// Generates a new random id for withdrawals
-		fn new_random_id() -> Vec<u8> {
+		/// Generates a new random id for withdrawals with an optional prefix
+		fn new_random_id(prefix: Option<[u8; 4]>) -> H160 {
 			let mut nonce = <RandomnessNonce<T>>::get();
 			nonce = nonce.wrapping_add(1);
 			<RandomnessNonce<T>>::put(nonce);
 			let network_id = T::SubstrateNetworkId::get();
-			let entropy = sp_io::hashing::blake2_256(&((network_id, nonce).encode()));
-			entropy.to_vec()
+			let mut entropy: [u8; 20] = [0u8; 20];
+			if let Some(prefix) = prefix {
+				entropy[0..4].copy_from_slice(&prefix);
+			}
+			entropy[4..]
+				.copy_from_slice(&sp_io::hashing::blake2_128(&((network_id, nonce).encode())));
+			H160::from(entropy)
 		}
 
 		/// Get Pallet Id
@@ -543,14 +559,14 @@ pub mod pallet {
 		}
 
 		/// Retrieves the existing assetid for given assetid or generates and stores a new assetid
-		pub fn generate_asset_id_for_parachain(asset: AssetId) -> u128 {
+		pub fn generate_asset_id_for_parachain(asset: AssetId) -> polkadex_primitives::AssetId {
 			// Check if its native or not.
 			if asset
 				== AssetId::Concrete(MultiLocation {
 					parents: 1,
 					interior: Junctions::X1(Parachain(T::ParachainId::get())),
 				}) {
-				return T::NativeAssetId::get().into();
+				return polkadex_primitives::AssetId::Polkadex;
 			}
 			// If it's not native, then hash and generate the asset id
 			let asset_id =
@@ -582,7 +598,9 @@ pub mod pallet {
 		}
 
 		/// Converts asset_id to XCM::MultiLocation
-		pub fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
+		pub fn convert_asset_id_to_location(
+			asset_id: polkadex_primitives::AssetId,
+		) -> Option<MultiLocation> {
 			Self::assets_mapping(asset_id).and_then(|asset| match asset {
 				AssetId::Concrete(location) => Some(location),
 				AssetId::Abstract(_) => None,
@@ -590,7 +608,9 @@ pub mod pallet {
 		}
 
 		/// Converts Multilocation to u128
-		pub fn convert_location_to_asset_id(location: MultiLocation) -> u128 {
+		pub fn convert_location_to_asset_id(
+			location: MultiLocation,
+		) -> polkadex_primitives::AssetId {
 			Self::generate_asset_id_for_parachain(AssetId::Concrete(location))
 		}
 
@@ -598,79 +618,9 @@ pub mod pallet {
 			<PendingWithdrawals<T>>::insert(block_no, vec![withdrawal]);
 		}
 
-		pub fn handle_old_pending_withdrawals(n: BlockNumberFor<T>) {
+		pub fn handle_new_pending_withdrawals(n: BlockNumberFor<T>) {
 			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
-				while let Some(withdrawal) = withdrawals.pop() {
-					if !withdrawal.is_blocked {
-						let destination = match VersionedMultiLocation::decode(
-							&mut &withdrawal.destination[..],
-						) {
-							Ok(dest) => dest,
-							Err(_) => {
-								failed_withdrawal.push(withdrawal);
-								log::error!(target:"xcm-helper","Withdrawal failed: Not able to decode destination");
-								continue;
-							},
-						};
-						if !Self::is_polkadex_parachain_destination(&destination) {
-							if let Some(asset) = Self::assets_mapping(withdrawal.asset_id) {
-								let multi_asset = MultiAsset {
-									id: asset,
-									fun: Fungibility::Fungible(withdrawal.amount),
-								};
-								let pallet_account: T::AccountId =
-									T::AssetHandlerPalletId::get().into_account_truncating();
-								// Mint
-								if Self::resolver_deposit(
-									withdrawal.asset_id.into(),
-									withdrawal.amount,
-									&pallet_account,
-									pallet_account.clone(),
-									1u128,
-									pallet_account.clone(),
-								)
-								.is_err()
-								{
-									failed_withdrawal.push(withdrawal.clone());
-									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
-								};
-								if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
-									RawOrigin::Signed(
-										T::AssetHandlerPalletId::get().into_account_truncating(),
-									)
-									.into(),
-									Box::new(multi_asset.into()),
-									0,
-									Box::new(destination.clone()),
-									cumulus_primitives_core::WeightLimit::Unlimited,
-								)
-								.is_err()
-								{
-									failed_withdrawal.push(withdrawal.clone());
-									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
-								}
-							} else {
-								failed_withdrawal.push(withdrawal)
-							}
-						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
-							failed_withdrawal.push(withdrawal);
-							log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
-						}
-					} else {
-						failed_withdrawal.push(withdrawal);
-						log::error!(target:"xcm-helper","Withdrawal failed: Withdrawal is blocked");
-					}
-				}
-			});
-			if !failed_withdrawal.is_empty() {
-				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
-			}
-		}
-
-		pub fn handle_new_pending_withdrawals(n: BlockNumberFor<T>) {
-			let mut failed_withdrawal: Vec<NewWithdraw> = Vec::default();
-			<NewPendingWithdrawals<T>>::mutate(n, |withdrawals| {
 				while let Some(withdrawal) = withdrawals.pop() {
 					if !withdrawal.is_blocked {
 						let destination = match VersionedMultiLocation::decode(
@@ -743,6 +693,12 @@ pub mod pallet {
 									{
 										failed_withdrawal.push(withdrawal.clone());
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+									} else {
+										// Deposit event
+										Self::deposit_event(Event::<T>::AssetWithdrawn(
+											withdrawal.id,
+											withdrawal.asset_id,
+										));
 									}
 								}
 							} else if let Some(asset) = Self::assets_mapping(withdrawal.asset_id) {
@@ -780,13 +736,17 @@ pub mod pallet {
 								{
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+								} else {
+									// Deposit event
+									Self::deposit_event(Event::<T>::AssetWithdrawn(
+										withdrawal.id,
+										withdrawal.asset_id,
+									))
 								}
 							} else {
 								failed_withdrawal.push(withdrawal)
 							}
-						} else if Self::handle_deposit(withdrawal.clone().into(), destination)
-							.is_err()
-						{
+						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
 							failed_withdrawal.push(withdrawal);
 							log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
 						}
@@ -798,23 +758,27 @@ pub mod pallet {
 			});
 			// Only update the storage if vector is not empty
 			if !failed_withdrawal.is_empty() {
-				<NewFailedWithdrawals<T>>::insert(n, failed_withdrawal);
+				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
 			}
 		}
 	}
 
 	impl<T: Config> AssetIdConverter for Pallet<T> {
-		fn convert_asset_id_to_location(asset_id: u128) -> Option<MultiLocation> {
+		fn convert_asset_id_to_location(
+			asset_id: polkadex_primitives::AssetId,
+		) -> Option<MultiLocation> {
 			Self::convert_asset_id_to_location(asset_id)
 		}
 
-		fn convert_location_to_asset_id(location: MultiLocation) -> Option<u128> {
+		fn convert_location_to_asset_id(
+			location: MultiLocation,
+		) -> Option<polkadex_primitives::AssetId> {
 			Some(Self::convert_location_to_asset_id(location))
 		}
 	}
 
 	impl<T: Config> WhitelistedTokenHandler for Pallet<T> {
-		fn check_whitelisted_token(asset_id: u128) -> bool {
+		fn check_whitelisted_token(asset_id: polkadex_primitives::AssetId) -> bool {
 			let whitelisted_tokens = <WhitelistedTokens<T>>::get();
 			whitelisted_tokens.contains(&asset_id)
 		}
@@ -822,7 +786,7 @@ pub mod pallet {
 
 	impl<T: Config> TheaIncomingExecutor for Pallet<T> {
 		fn execute_deposits(_: Network, deposits: Vec<u8>) {
-			let deposits = Vec::<NewWithdraw>::decode(&mut &deposits[..]).unwrap_or_default();
+			let deposits = Vec::<Withdraw>::decode(&mut &deposits[..]).unwrap_or_default();
 			for deposit in deposits {
 				// Calculate the withdrawal execution delay
 				let withdrawal_execution_block: BlockNumberFor<T> =
@@ -833,7 +797,7 @@ pub mod pallet {
 						)
 						.into();
 				// Queue the withdrawal for execution
-				<NewPendingWithdrawals<T>>::mutate(
+				<PendingWithdrawals<T>>::mutate(
 					withdrawal_execution_block,
 					|pending_withdrawals| {
 						pending_withdrawals.push(deposit);

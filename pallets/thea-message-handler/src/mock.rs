@@ -194,18 +194,19 @@ impl thea_executor::Config for Test {
 	type Currency = Balances;
 	type Assets = Assets;
 	type AssetId = u128;
+	type MultiAssetIdAdapter = AssetId;
+	type AssetBalanceAdapter = u128;
 	type AssetCreateUpdateOrigin = EnsureRoot<Self::AccountId>;
 	type Executor = Thea;
 	type NativeAssetId = PolkadexAssetId;
 	type TheaPalletId = TheaPalletId;
-	type WithdrawalSize = WithdrawalSize;
-	type ParaId = ParaId;
 	type Swap = AssetConversion;
-	type TheaExecWeightInfo = thea_executor::weights::WeightInfo<Test>;
-	type MultiAssetIdAdapter = AssetId;
-	type AssetBalanceAdapter = u128;
-	type GovernanceOrigin = EnsureRoot<u64>;
+	type Orderbook = ();
+	type WithdrawalSize = WithdrawalSize;
 	type ExistentialDeposit = ExistentialDeposit;
+	type ParaId = ParaId;
+	type GovernanceOrigin = EnsureRoot<u64>;
+	type TheaExecWeightInfo = thea_executor::weights::WeightInfo<Test>;
 }
 
 impl crate::Config for Test {

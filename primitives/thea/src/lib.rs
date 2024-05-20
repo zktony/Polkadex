@@ -23,6 +23,7 @@
 
 #![cfg_attr(not(feature = "std"), no_std)]
 
+pub mod extras;
 pub mod types;
 
 pub use crate::types::Message;

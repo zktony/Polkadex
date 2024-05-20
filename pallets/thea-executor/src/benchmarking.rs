@@ -27,23 +27,24 @@ use frame_support::traits::{
 };
 use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
 use parity_scale_codec::Decode;
-use polkadex_primitives::UNIT_BALANCE;
+use polkadex_primitives::{AssetId, UNIT_BALANCE};
+use sp_core::H160;
 use sp_runtime::{traits::AccountIdConversion, SaturatedConversion};
 use sp_std::{boxed::Box, collections::btree_set::BTreeSet, vec, vec::Vec};
-use thea_primitives::types::NewWithdraw;
+use thea_primitives::types::Withdraw;
 use thea_primitives::types::{AssetMetadata, Deposit};
 use xcm::VersionedMultiLocation;
 
 fn create_deposit<T: Config>(recipient: T::AccountId) -> Vec<Deposit<T::AccountId>> {
 	let mut pending_deposits = vec![];
-	let asset_id = 100;
+	let asset_id = AssetId::Asset(100);
 	for _i in 1..20 {
 		let deposit: Deposit<T::AccountId> = Deposit {
-			id: vec![],
+			id: H160::zero(),
 			recipient: recipient.clone(),
 			asset_id,
 			amount: 1_000_000_000_000,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		pending_deposits.push(deposit);
 	}
@@ -62,7 +63,7 @@ benchmarks! {
 
 	update_asset_metadata {
 		let r in 1 .. 1000;
-		let asset_id = r as u128;
+		let asset_id = AssetId::Asset(r as u128);
 		let decimal: u8 = 8;
 	}: _(RawOrigin::Root, asset_id, decimal)
 	verify {
@@ -83,10 +84,10 @@ benchmarks! {
 		let pallet_acc = T::TheaPalletId::get().into_account_truncating();
 		<T as pallet::Config>::Currency::mint_into(&pallet_acc, 100_000_000_000_000_000_000u128.saturated_into()).unwrap();
 		let metadata = AssetMetadata::new(3).unwrap();
-		<Metadata<T>>::insert(100, metadata);
+		<Metadata<T>>::insert( AssetId::Asset(100), metadata);
 		<WithdrawalFees<T>>::insert(network_id, 10);
 		let benificary = vec![1;32];
-	}: _(RawOrigin::Signed(account.clone()), 100, 1_000, benificary, true, network_id, false)
+	}: _(RawOrigin::Signed(account.clone()),  AssetId::Asset(100), 1_000, benificary, true, network_id, false)
 	verify {
 		let ready_withdrawal = <ReadyWithdrawals<T>>::get(<frame_system::Pallet<T>>::block_number(), network_id);
 		assert_eq!(ready_withdrawal.len(), 1);
@@ -104,11 +105,11 @@ benchmarks! {
 		<T as pallet::Config>::Assets::mint_into(asset_id.into(), &account, 100_000_000_000_000_000_000u128.saturated_into()).unwrap();
 		<T as pallet::Config>::Currency::mint_into(&account, 100_000_000_000_000u128.saturated_into()).unwrap();
 		let metadata = AssetMetadata::new(10).unwrap();
-		<Metadata<T>>::insert(100, metadata);
+		<Metadata<T>>::insert( AssetId::Asset(100), metadata);
 		<WithdrawalFees<T>>::insert(network_id, 1_000);
 		let multilocation = MultiLocation { parents: 1, interior: Junctions::Here };
 		let benificary = VersionedMultiLocation::V3(multilocation);
-	}: _(RawOrigin::Signed(account.clone()), 100, 1_000_000_000_000, Box::new(benificary), None, None, true, false)
+	}: _(RawOrigin::Signed(account.clone()),  AssetId::Asset(100), 1_000_000_000_000, Box::new(benificary), None, None, true, false)
 	verify {
 		let ready_withdrawal = <ReadyWithdrawals<T>>::get(<frame_system::Pallet<T>>::block_number(), network_id);
 		assert_eq!(ready_withdrawal.len(), 1);
@@ -116,7 +117,7 @@ benchmarks! {
 
 	evm_withdraw {
 		let r in 1 .. 1000;
-		let asset_id: <T as pallet::Config>::AssetId = 100u128.into();
+		let asset_id : <T as pallet::Config>::AssetId = 100.into();
 		let admin = account::<T::AccountId>("admin", 1, r);
 		let network_id = 2;
 		<T as pallet::Config>::Assets::create(asset_id.into(), admin, true, 1u128.saturated_into()).unwrap();
@@ -126,10 +127,10 @@ benchmarks! {
 		<T as pallet::Config>::Assets::mint_into(asset_id.into(), &account, 100_000_000_000_000_000_000u128.saturated_into()).unwrap();
 		<T as pallet::Config>::Currency::mint_into(&account, 100_000_000_000_000u128.saturated_into()).unwrap();
 		let metadata = AssetMetadata::new(10).unwrap();
-		<Metadata<T>>::insert(100, metadata);
+		<Metadata<T>>::insert( AssetId::Asset(100), metadata);
 		<WithdrawalFees<T>>::insert(network_id, 1_000);
 		let beneficiary: sp_core::H160 = sp_core::H160::default();
-	}: _(RawOrigin::Signed(account.clone()), 100, 1_000_000_000_000, beneficiary, network_id, true, false)
+	}: _(RawOrigin::Signed(account.clone()), AssetId::Asset(100), 1_000_000_000_000, beneficiary, network_id, true, false)
 	verify {
 		let ready_withdrawal = <ReadyWithdrawals<T>>::get(<frame_system::Pallet<T>>::block_number(), network_id);
 		assert_eq!(ready_withdrawal.len(), 1);
@@ -140,15 +141,15 @@ benchmarks! {
 		let y in 1 .. 1_000;
 		let network_len: usize = x as usize;
 		let network_len: u8 = network_len as u8;
-		let withdrawal = NewWithdraw {
-			id: vec![],
-			asset_id: 100,
+		let withdrawal = Withdraw {
+			id: H160::zero(),
+			asset_id: polkadex_primitives::AssetId::Asset(100),
 			amount: 1_000_000_000_000,
 			destination: vec![],
 			fee_asset_id: None,
 			fee_amount: None,
 			is_blocked: false,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		let mut withdrawal_vec = Vec::new();
 		for _ in 0..y {
@@ -178,10 +179,10 @@ benchmarks! {
 	claim_deposit {
 		let r in 1 .. 1000;
 		let account = account::<T::AccountId>("alice", 1, r);
-		let asset_id: <T as pallet::Config>::AssetId = 100u128.into();
+		let asset_id : <T as pallet::Config>::AssetId = 100.into();
 		let deposits = create_deposit::<T>(account.clone());
 		let metadata = AssetMetadata::new(10).unwrap();
-		<Metadata<T>>::insert(100, metadata);
+		<Metadata<T>>::insert(polkadex_primitives::AssetId::Asset(100), metadata);
 		<T as pallet::Config>::Currency::mint_into(&account, 100_000_000_000_000u128.saturated_into()).unwrap();
 		<ApprovedDeposits<T>>::insert(account.clone(), deposits);
 	}: _(RawOrigin::Signed(account.clone()), 10,account.clone())
@@ -193,6 +194,7 @@ benchmarks! {
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
+use thea_primitives::extras::ExtraData;
 use xcm::latest::{Junctions, MultiLocation};
 
 #[cfg(test)]

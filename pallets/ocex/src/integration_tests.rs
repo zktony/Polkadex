@@ -43,7 +43,7 @@ use rust_decimal::Decimal;
 use sequential_test::sequential;
 use sp_core::crypto::AccountId32;
 use sp_core::sr25519::Signature;
-use sp_core::{Pair, H256};
+use sp_core::{Pair, H160, H256};
 use sp_runtime::offchain::storage::StorageValueRef;
 use std::collections::BTreeMap;
 
@@ -321,10 +321,18 @@ fn push_trade_user_actions(stid: u64, snapshot_id: u64, block_no: u64) {
 fn get_block_import(block_no: u64) -> u64 {
 	let block_no = block_no;
 	let (maker_account, taker_account) = get_maker_and_taker_account();
-	let maker_ingress_message =
-		IngressMessages::Deposit(maker_account, AssetId::Asset(1), Decimal::from(100));
-	let taker_ingress_message =
-		IngressMessages::Deposit(taker_account, AssetId::Polkadex, Decimal::from(100));
+	let maker_ingress_message = IngressMessages::Deposit(
+		H160::zero(),
+		maker_account,
+		AssetId::Asset(1),
+		Decimal::from(100),
+	);
+	let taker_ingress_message = IngressMessages::Deposit(
+		H160::zero(),
+		taker_account,
+		AssetId::Polkadex,
+		Decimal::from(100),
+	);
 	<IngressMessagesStorage<Test>>::insert(
 		block_no,
 		vec![maker_ingress_message, taker_ingress_message],

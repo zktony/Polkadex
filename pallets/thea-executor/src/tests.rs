@@ -27,12 +27,15 @@ use frame_support::{
 };
 use frame_system::EventRecord;
 use parity_scale_codec::Encode;
+use polkadex_primitives::AssetId;
+use polkadex_primitives::AssetId::Asset;
 use sp_core::H160;
 use sp_runtime::{
 	traits::{AccountIdConversion, BadOrigin},
 	SaturatedConversion,
 };
-use thea_primitives::types::NewWithdraw;
+use thea_primitives::extras::ExtraData;
+use thea_primitives::types::Withdraw;
 use thea_primitives::types::{AssetMetadata, Deposit};
 use xcm::v3::Junction;
 use xcm::{opaque::lts::Junctions, v3::MultiLocation, VersionedMultiLocation};
@@ -53,7 +56,7 @@ fn test_withdraw_returns_ok() {
 		assert_noop!(
 			TheaExecutor::withdraw(
 				RuntimeOrigin::signed(1),
-				1u128,
+				Asset(1u128),
 				1000u128,
 				beneficiary.to_vec(),
 				false,
@@ -79,7 +82,7 @@ fn test_transfer_native_asset() {
 			admin,
 			1u128
 		));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id, 12));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		// Set balance for User
 		Balances::set_balance(&user, 1_000_000_000_000_000_000);
 		assert_ok!(Assets::mint_into(asset_id, &user, 1_000_000_000_000_000_000));
@@ -87,7 +90,7 @@ fn test_transfer_native_asset() {
 		assert_ok!(TheaExecutor::set_withdrawal_fee(RuntimeOrigin::root(), 1, 0));
 		assert_ok!(TheaExecutor::withdraw(
 			RuntimeOrigin::signed(user),
-			asset_id,
+			asset_id.into(),
 			10_000_000_000_000u128,
 			vec![1; 32],
 			false,
@@ -96,15 +99,15 @@ fn test_transfer_native_asset() {
 		));
 		// Verify
 		let pending_withdrawal = <PendingWithdrawals<Test>>::get(1);
-		let approved_withdraw = NewWithdraw {
-			id: Vec::from([179, 96, 16, 235, 40, 92, 21, 74, 140, 214]),
-			asset_id,
+		let approved_withdraw = Withdraw {
+			id: H160::from_slice(&hex::decode("00000000ec73991183eca9d2e5da0e7cd3ffaf93").unwrap()),
+			asset_id: asset_id.into(),
 			amount: 10_000_000_000_000u128,
 			destination: vec![1; 32],
 			fee_asset_id: None,
 			fee_amount: None,
 			is_blocked: false,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		assert_eq!(pending_withdrawal.to_vec().pop().unwrap(), approved_withdraw);
 	})
@@ -124,14 +127,14 @@ fn test_deposit_with_valid_args_returns_ok() {
 			admin,
 			1u128
 		));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id, 12));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		assert_ok!(TheaExecutor::set_withdrawal_fee(RuntimeOrigin::root(), 1, 0));
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
-			asset_id,
+			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		assert_ok!(TheaExecutor::do_deposit(1, &vec![deposit].encode()));
 	})
@@ -166,7 +169,7 @@ fn test_set_withdrawal_fee_full() {
 fn test_parachain_withdraw_full() {
 	new_test_ext().execute_with(|| {
 		// setup code
-		let asset_id: <Test as Config>::AssetId = 100u128;
+		let asset_id: AssetId = 100u128.into();
 		let admin = 1u64;
 		let network_id = 1;
 		Balances::set_balance(&admin, 100_000_000_000_000_000_000u128.saturated_into());
@@ -177,7 +180,7 @@ fn test_parachain_withdraw_full() {
 		.unwrap();
 		<Test as Config>::Assets::create(
 			RuntimeOrigin::signed(admin),
-			asset_id.into(),
+			100u128.into(),
 			admin,
 			1u128.saturated_into(),
 		)
@@ -196,13 +199,13 @@ fn test_parachain_withdraw_full() {
 			100_000_000_000_000_000_000u128.saturated_into(),
 		)
 		.unwrap();
-		Assets::mint_into(asset_id, &account, 100_000_000_000_000_000_000u128.saturated_into())
+		Assets::mint_into(100u128, &account, 100_000_000_000_000_000_000u128.saturated_into())
 			.unwrap();
 		<Test as Config>::Currency::mint_into(&account, 100_000_000_000_000u128.saturated_into())
 			.unwrap();
 		Balances::set_balance(&account, 100_000_000_000_000u128.saturated_into());
 		let metadata = AssetMetadata::new(10).unwrap();
-		<Metadata<Test>>::insert(100, metadata);
+		<Metadata<Test>>::insert(asset_id, metadata);
 		<WithdrawalFees<Test>>::insert(network_id, 1_000);
 		let multilocation = MultiLocation { parents: 1, interior: Junctions::Here };
 		let beneficiary = Box::new(VersionedMultiLocation::V3(multilocation));
@@ -210,7 +213,7 @@ fn test_parachain_withdraw_full() {
 		assert_noop!(
 			TheaExecutor::parachain_withdraw(
 				RuntimeOrigin::root(),
-				u128::MAX,
+				u128::MAX.into(),
 				1_000_000_000,
 				beneficiary.clone(),
 				None,
@@ -223,7 +226,7 @@ fn test_parachain_withdraw_full() {
 		assert_noop!(
 			TheaExecutor::parachain_withdraw(
 				RuntimeOrigin::none(),
-				u128::MAX,
+				u128::MAX.into(),
 				1_000_000_000,
 				beneficiary.clone(),
 				None,
@@ -237,7 +240,7 @@ fn test_parachain_withdraw_full() {
 		assert_noop!(
 			TheaExecutor::parachain_withdraw(
 				RuntimeOrigin::signed(account),
-				u128::MAX,
+				u128::MAX.into(),
 				1_000_000_000,
 				beneficiary.clone(),
 				None,
@@ -280,23 +283,30 @@ fn test_update_asset_metadata_full() {
 	new_test_ext().execute_with(|| {
 		// bad origins
 		assert_noop!(
-			TheaExecutor::update_asset_metadata(RuntimeOrigin::signed(1), 1, 1),
+			TheaExecutor::update_asset_metadata(RuntimeOrigin::signed(1), 1.into(), 1),
 			BadOrigin
 		);
 		assert_noop!(
-			TheaExecutor::update_asset_metadata(RuntimeOrigin::signed(u64::MAX), 1, 1),
+			TheaExecutor::update_asset_metadata(RuntimeOrigin::signed(u64::MAX), 1.into(), 1),
 			BadOrigin
 		);
-		assert_noop!(TheaExecutor::update_asset_metadata(RuntimeOrigin::none(), 1, 1), BadOrigin);
+		assert_noop!(
+			TheaExecutor::update_asset_metadata(RuntimeOrigin::none(), 1.into(), 1),
+			BadOrigin
+		);
 		// invalid decimal
 		assert_noop!(
-			TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), u128::MAX, u8::MIN),
+			TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), u128::MAX.into(), u8::MIN),
 			Error::<Test>::InvalidDecimal
 		);
 		// proper cases
 		System::set_block_number(1);
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), 0, u8::MAX));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), u128::MAX, u8::MAX));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), 0.into(), u8::MAX));
+		assert_ok!(TheaExecutor::update_asset_metadata(
+			RuntimeOrigin::root(),
+			u128::MAX.into(),
+			u8::MAX
+		));
 		let md = AssetMetadata::new(u8::MAX).unwrap();
 		assert_last_event::<Test>(Event::<Test>::AssetMetadataSet(md).into());
 	})
@@ -315,14 +325,14 @@ fn test_resolve_deposit() {
 			admin,
 			1u128
 		));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id, 12));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		Balances::set_balance(&recipient, 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
-			asset_id,
+			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		assert_ok!(TheaExecutor::execute_deposit(deposit));
 	})
@@ -336,14 +346,14 @@ fn test_deposit_without_account() {
 		let admin = 1u64;
 		let recipient = 2u64;
 		Balances::set_balance(&admin, 1_000_000_000_000_000_000);
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id, 12));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		Balances::set_balance(&TheaExecutor::thea_account(), 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
-			asset_id,
+			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000u128,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		assert_ok!(TheaExecutor::execute_deposit(deposit));
 		assert_eq!(Balances::free_balance(&recipient), 50);
@@ -367,10 +377,10 @@ fn test_do_withdrawal() {
 		let _ = Assets::mint_into(asset_id, &sender, 1_000_000_000_000_000_000);
 		// Set withdrawal Fee
 		assert_ok!(TheaExecutor::set_withdrawal_fee(RuntimeOrigin::root(), 1, 100));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id, 12));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		assert_ok!(TheaExecutor::withdraw(
 			RuntimeOrigin::signed(sender),
-			asset_id,
+			asset_id.into(),
 			1_000_000_000_000_000u128,
 			vec![1; 32],
 			true,
@@ -394,11 +404,11 @@ fn test_do_withdrawal_with_total_amount_consumed_returns_error() {
 		assert_ok!(Assets::mint_into(asset_id, &sender, 100_300_903u128));
 		// Set withdrawal Fee
 		assert_ok!(TheaExecutor::set_withdrawal_fee(RuntimeOrigin::root(), 1, 100));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id, 12));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		assert_noop!(
 			TheaExecutor::withdraw(
 				RuntimeOrigin::signed(sender),
-				asset_id,
+				asset_id.into(),
 				1_000_000_000_000_000u128,
 				vec![1; 32],
 				true,
@@ -449,12 +459,12 @@ fn test_evm_withdraw() {
 			.unwrap();
 		Balances::set_balance(&account, 100_000_000_000_000u128.saturated_into());
 		let metadata = AssetMetadata::new(10).unwrap();
-		<Metadata<Test>>::insert(100, metadata);
+		<Metadata<Test>>::insert(Asset(100), metadata);
 		<WithdrawalFees<Test>>::insert(network_id, 1_000);
 		let beneficiary = H160::from_slice(&[1; 20]);
 		assert_ok!(TheaExecutor::evm_withdraw(
 			RuntimeOrigin::signed(account),
-			asset_id,
+			asset_id.into(),
 			1_000_000_000,
 			beneficiary.clone(),
 			network_id,
@@ -477,14 +487,14 @@ fn test_claim_deposit_returns_ok() {
 			admin,
 			1u128
 		));
-		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id, 12));
+		assert_ok!(TheaExecutor::update_asset_metadata(RuntimeOrigin::root(), asset_id.into(), 12));
 		Balances::set_balance(&recipient, 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
-			asset_id,
+			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		assert_ok!(TheaExecutor::do_deposit(1, &vec![deposit].encode()));
 		assert_ok!(TheaExecutor::claim_deposit(RuntimeOrigin::signed(recipient), 1, recipient));
@@ -506,11 +516,11 @@ fn test_claim_deposit_returns_asset_not_registered() {
 		));
 		Balances::set_balance(&recipient, 1_000_000_000_000_000_000);
 		let deposit = Deposit {
-			id: Vec::new(),
+			id: H160::zero(),
 			recipient,
-			asset_id,
+			asset_id: asset_id.into(),
 			amount: 1_000_000_000_000_000_000u128,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		assert_noop!(
 			TheaExecutor::do_deposit(1, &vec![deposit].encode()),
@@ -535,7 +545,7 @@ fn test_create_parachain_asset() {
 		));
 		let asset_id =
 			polkadex_primitives::assets::generate_asset_id_for_parachain(Box::new(asset));
-		assert!(Assets::asset_exists(asset_id));
+		assert!(Assets::asset_exists(asset_id.into()));
 		let expected_metadata = AssetMetadata::new(10);
 		let actual_metadata = <Metadata<Test>>::get(asset_id);
 		assert_eq!(expected_metadata, actual_metadata);
