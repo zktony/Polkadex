@@ -37,12 +37,12 @@ use sp_runtime::{
 	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
 	RuntimeAppPublic, SaturatedConversion,
 };
+use sp_std::collections::btree_set::BTreeSet;
 use sp_std::prelude::*;
 use thea_primitives::{
 	types::{Message, NetworkType, PayloadType},
 	Network, ValidatorSet, GENESIS_AUTHORITY_SET_ID,
 };
-use sp_std::collections::btree_set::BTreeSet;
 
 #[cfg(feature = "runtime-benchmarks")]
 mod benchmarking;
