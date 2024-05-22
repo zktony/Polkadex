@@ -16,7 +16,12 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::lmp::keys::{get_fees_paid_by_main_account, get_lmp_config_key, get_maker_volume_by_main_account_key, get_q_score_uptime_by_main_account, get_total_maker_volume_key, get_trade_volume_by_main_account_key};
+use crate::lmp::keys::{
+	get_fees_paid_by_main_account, get_lmp_config_key, get_maker_volume_by_main_account_key,
+	get_q_score_uptime_by_main_account, get_total_maker_volume_key,
+	get_trade_volume_by_main_account_key,
+};
+use crate::pallet::Accounts;
 use crate::{
 	pallet::{IngressMessages, PriceOracle, TraderMetrics, TradingPairs},
 	storage::OffchainState,
@@ -40,7 +45,6 @@ use rust_decimal::{
 use sp_core::crypto::{Ss58AddressFormat, Ss58Codec};
 use sp_runtime::{traits::BlockNumberProvider, DispatchError, SaturatedConversion};
 use sp_std::{collections::btree_map::BTreeMap, vec::Vec};
-use crate::pallet::Accounts;
 
 pub const LMP_CONFIG_KEY: [u8; 14] = *b"LMP_CONFIG_KEY";
 
@@ -359,26 +363,27 @@ impl<T: Config> Pallet<T> {
 	pub fn clear_lmp_storages(state: &mut OffchainState) -> Result<(), &'static str> {
 		let current_epoch: u16 = <LMPEpoch<T>>::get();
 		let trading_pairs = <TradingPairs<T>>::iter_keys()
-			.map(|(base,quote)| TradingPair::from(quote,base))
+			.map(|(base, quote)| TradingPair::from(quote, base))
 			.collect::<Vec<TradingPair>>();
 		let main_accounts = <Accounts<T>>::iter_keys().collect::<Vec<T::AccountId>>();
-			for main in &main_accounts {
-				let main_type: AccountId = Decode::decode(&mut &main.encode()[..]).map_err(|_| "Unable to decode decimal")?;
-				for epoch in 0..=current_epoch {
-					for pair in &trading_pairs {
-						let key1 = get_trade_volume_by_main_account_key(epoch,*pair,&main_type);
-						let key2 = get_maker_volume_by_main_account_key(epoch,*pair,&main_type);
-						let key3 = get_total_maker_volume_key(epoch,*pair);
-						let key4 = get_fees_paid_by_main_account(epoch,*pair,&main_type);
-						let key5 = get_q_score_uptime_by_main_account(epoch,*pair,&main_type);
-						state.remove(key1);
-						state.remove(key2);
-						state.remove(key3);
-						state.remove(key4);
-						state.remove(key5);
-					}
+		for main in &main_accounts {
+			let main_type: AccountId =
+				Decode::decode(&mut &main.encode()[..]).map_err(|_| "Unable to decode decimal")?;
+			for epoch in 0..=current_epoch {
+				for pair in &trading_pairs {
+					let key1 = get_trade_volume_by_main_account_key(epoch, *pair, &main_type);
+					let key2 = get_maker_volume_by_main_account_key(epoch, *pair, &main_type);
+					let key3 = get_total_maker_volume_key(epoch, *pair);
+					let key4 = get_fees_paid_by_main_account(epoch, *pair, &main_type);
+					let key5 = get_q_score_uptime_by_main_account(epoch, *pair, &main_type);
+					state.remove(key1);
+					state.remove(key2);
+					state.remove(key3);
+					state.remove(key4);
+					state.remove(key5);
 				}
 			}
+		}
 		let lmp_config_key = get_lmp_config_key();
 		state.remove(lmp_config_key);
 

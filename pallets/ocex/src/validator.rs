@@ -113,19 +113,19 @@ impl<T: Config> Pallet<T> {
 		let mut state_info = match Self::load_state_info(&mut state) {
 			Ok(info) => {
 				// Check if last processed snapshot id root from on-chain is same as our offchain root
-				if let Some(summary) = <Snapshots<T>>::get(info.snapshot_id){
+				if let Some(summary) = <Snapshots<T>>::get(info.snapshot_id) {
 					if summary.state_hash != root_clone {
 						log::error!(target:"ocex","Last processed snapshot root is not same as on-chain root");
 						store_trie_root(H256::zero());
 						return Err("Last processed snapshot root is not same as on-chain root");
 					}
 					info
-				}else {
+				} else {
 					if info.snapshot_id != 0 {
 						log::error!(target:"ocex","Unable to load last processed snapshot summary from on-chain: {:?}",info.snapshot_id);
 						store_trie_root(H256::zero());
 						return Err("Unable to load last processed snapshot summary from on-chain");
-					}else {
+					} else {
 						info
 					}
 				}

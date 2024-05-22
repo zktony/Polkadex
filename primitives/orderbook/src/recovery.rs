@@ -16,7 +16,7 @@
 // You should have received a copy of the GNU General Public License
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-use crate::{ObCheckpointRaw, types::AccountAsset};
+use crate::{types::AccountAsset, ObCheckpointRaw};
 use parity_scale_codec::{Decode, Encode};
 use polkadex_primitives::{AccountId, AssetId, BlockNumber};
 use rust_decimal::Decimal;

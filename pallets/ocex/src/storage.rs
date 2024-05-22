@@ -34,7 +34,7 @@ const TRIE_ROOT: [u8; 24] = *b"offchain-ocex::trie_root";
 pub struct OffchainState<'a> {
 	cache: sp_std::collections::btree_map::BTreeMap<Vec<u8>, Vec<u8>>,
 	trie: TrieDBMut<'a, LayoutV1<BlakeTwo256>>,
-	keys_to_remove: sp_std::collections::btree_set::BTreeSet<Vec<u8>>
+	keys_to_remove: sp_std::collections::btree_set::BTreeSet<Vec<u8>>,
 }
 
 impl<'a> OffchainState<'a> {
@@ -280,7 +280,7 @@ mod tests {
 	};
 
 	#[test]
-	pub fn test_removal_same_as_not_existing(){
+	pub fn test_removal_same_as_not_existing() {
 		let mut ext = new_test_ext();
 		register_offchain_ext(&mut ext);
 		log::trace!(target:"ocex","test_trie_storage test starting..");
@@ -295,15 +295,15 @@ mod tests {
 
 				state.insert(b"1".to_vec(), b"a".to_vec());
 				let intermediate_root1 = state.commit().unwrap();
-				assert_ne!(empty_root,intermediate_root1);
+				assert_ne!(empty_root, intermediate_root1);
 				state.insert(b"2".to_vec(), b"b".to_vec());
 				let _intermediate_root2 = state.commit().unwrap();
 				state.remove(b"2".to_vec());
 				let final_root = state.commit().unwrap();
-				assert_eq!(intermediate_root1,final_root)
-			}});
+				assert_eq!(intermediate_root1, final_root)
+			}
+		});
 	}
-
 
 	#[test]
 	pub fn test_commit_change_revert_pattern() {

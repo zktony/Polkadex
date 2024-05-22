@@ -1063,7 +1063,6 @@ pub mod pallet {
 			Ok(())
 		}
 
-
 		/// Governance endpoint for submit Snapshot Summary
 		#[pallet::call_index(24)]
 		#[pallet::weight(< T as Config >::WeightInfo::submit_snapshot())]
