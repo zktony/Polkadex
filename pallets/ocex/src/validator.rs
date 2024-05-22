@@ -105,11 +105,31 @@ impl<T: Config> Pallet<T> {
 		let next_nonce = <SnapshotNonce<T>>::get().saturating_add(1);
 		let mut root = crate::storage::load_trie_root();
 		log::info!(target:"ocex","block: {:?}, state_root {:?}", block_num, root);
+
 		let mut storage = crate::storage::State;
+		let root_clone = root.clone();
 		let mut state = OffchainState::load(&mut storage, &mut root);
 		// Load the state to memory
 		let mut state_info = match Self::load_state_info(&mut state) {
-			Ok(info) => info,
+			Ok(info) => {
+				// Check if last processed snapshot id root from on-chain is same as our offchain root
+				if let Some(summary) = <Snapshots<T>>::get(info.snapshot_id){
+					if summary.state_hash != root_clone {
+						log::error!(target:"ocex","Last processed snapshot root is not same as on-chain root");
+						store_trie_root(H256::zero());
+						return Err("Last processed snapshot root is not same as on-chain root");
+					}
+					info
+				}else {
+					if info.snapshot_id != 0 {
+						log::error!(target:"ocex","Unable to load last processed snapshot summary from on-chain: {:?}",info.snapshot_id);
+						store_trie_root(H256::zero());
+						return Err("Unable to load last processed snapshot summary from on-chain");
+					}else {
+						info
+					}
+				}
+			},
 			Err(err) => {
 				log::error!(target:"ocex","Err loading state info from storage: {:?}",err);
 				store_trie_root(H256::zero());
@@ -184,7 +204,6 @@ impl<T: Config> Pallet<T> {
 				sp_runtime::print(nonce);
 				match Self::process_batch(&mut state, &batch, &mut state_info) {
 					Ok(_) => {
-						Self::clear_lmp_storages(&mut state)?;
 						state_info.stid = batch.stid;
 						state_info.snapshot_id = batch.snapshot_id;
 						Self::store_state_info(state_info, &mut state);

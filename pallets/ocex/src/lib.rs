@@ -1062,6 +1062,22 @@ pub mod pallet {
 			Self::start_new_epoch(current_blk);
 			Ok(())
 		}
+
+
+		/// Governance endpoint for submit Snapshot Summary
+		#[pallet::call_index(24)]
+		#[pallet::weight(< T as Config >::WeightInfo::submit_snapshot())]
+		pub fn force_submit_snapshot(
+			origin: OriginFor<T>,
+			summary: SnapshotSummary<T::AccountId>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			let id = summary.snapshot_id;
+			<SnapshotNonce<T>>::put(id);
+			<Snapshots<T>>::insert(id, summary);
+			Self::deposit_event(crate::pallet::Event::<T>::SnapshotProcessed(id));
+			Ok(())
+		}
 	}
 
 	/// Events are a simple means of reporting specific conditions and
