@@ -82,7 +82,7 @@ impl<'a> OffchainState<'a> {
 		}
 
 		for key in &self.keys_to_remove {
-			self.trie.remove(&key).map_err(map_trie_error)?;
+			self.trie.remove(key).map_err(map_trie_error)?;
 		}
 		self.cache.clear();
 		self.keys_to_remove.clear();

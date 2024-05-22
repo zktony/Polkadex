@@ -107,7 +107,7 @@ impl<T: Config> Pallet<T> {
 		log::info!(target:"ocex","block: {:?}, state_root {:?}", block_num, root);
 
 		let mut storage = crate::storage::State;
-		let root_clone = root.clone();
+		let root_clone = root;
 		let mut state = OffchainState::load(&mut storage, &mut root);
 		// Load the state to memory
 		let mut state_info = match Self::load_state_info(&mut state) {
@@ -120,14 +120,12 @@ impl<T: Config> Pallet<T> {
 						return Err("Last processed snapshot root is not same as on-chain root");
 					}
 					info
-				} else {
-					if info.snapshot_id != 0 {
-						log::error!(target:"ocex","Unable to load last processed snapshot summary from on-chain: {:?}",info.snapshot_id);
-						store_trie_root(H256::zero());
-						return Err("Unable to load last processed snapshot summary from on-chain");
-					} else {
-						info
-					}
+				} else if info.snapshot_id != 0{
+					log::error!(target:"ocex","Unable to load last processed snapshot summary from on-chain: {:?}",info.snapshot_id);
+					store_trie_root(H256::zero());
+					return Err("Unable to load last processed snapshot summary from on-chain");
+				}else{
+					info
 				}
 			},
 			Err(err) => {
