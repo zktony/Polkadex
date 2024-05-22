@@ -37,6 +37,7 @@ use sp_runtime::{
 	transaction_validity::{InvalidTransaction, TransactionValidity, ValidTransaction},
 	RuntimeAppPublic, SaturatedConversion,
 };
+use sp_std::collections::btree_set::BTreeSet;
 use sp_std::prelude::*;
 use thea_primitives::{
 	types::{Message, NetworkType, PayloadType},
@@ -102,7 +103,6 @@ pub mod pallet {
 	};
 	use frame_system::offchain::SendTransactionTypes;
 	use polkadex_primitives::Balance;
-	use sp_std::collections::btree_set::BTreeSet;
 	use thea_primitives::{
 		types::{IncomingMessage, Message, MisbehaviourReport, SignedMessage, THEA_HOLD_REASON},
 		TheaIncomingExecutor, TheaOutgoingExecutor,
@@ -770,7 +770,8 @@ impl<T: Config> Pallet<T> {
 		// that is, the incoming set is has different session keys from outgoing set.
 		// This last message should be signed by the outgoing set
 		// Similar to how Grandpa's session change works.
-		if incoming != queued {
+		let incoming_set = BTreeSet::from_iter(incoming.to_vec());
+		if incoming_set != BTreeSet::from_iter(queued.to_vec()) {
 			let uncompressed_keys: Vec<[u8; 20]> = vec![];
 			// TODO: Uncomment the following when parsing is fixed for ethereum keys.
 			// for public_key in queued.clone().into_iter() {
@@ -844,7 +845,7 @@ impl<T: Config> Pallet<T> {
 			}
 			<NextAuthorities<T>>::put(queued);
 		}
-		if incoming != outgoing {
+		if incoming_set != BTreeSet::from_iter(outgoing.to_vec()) {
 			// This will happen when new era starts, or end of the last epoch
 			<Authorities<T>>::insert(new_id, incoming);
 			<ValidatorSetId<T>>::put(new_id);

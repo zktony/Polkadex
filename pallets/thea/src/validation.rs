@@ -81,6 +81,7 @@ impl<T: Config> Pallet<T> {
 				None => continue,
 				Some(msg) => msg,
 			};
+
 			let msg_hash = sp_io::hashing::sha2_256(message.encode().as_slice());
 			// Note: this is a double hash signing
 			let signature =
