@@ -84,7 +84,6 @@ fn test_run_on_chain_validation_trades_happy_path() {
 	});
 }
 
-
 #[test]
 #[sequential]
 fn test_on_chain_validation_with_auction() {
