@@ -34,12 +34,13 @@ const TRIE_ROOT: [u8; 24] = *b"offchain-ocex::trie_root";
 pub struct OffchainState<'a> {
 	cache: sp_std::collections::btree_map::BTreeMap<Vec<u8>, Vec<u8>>,
 	trie: TrieDBMut<'a, LayoutV1<BlakeTwo256>>,
+	keys_to_remove: sp_std::collections::btree_set::BTreeSet<Vec<u8>>
 }
 
 impl<'a> OffchainState<'a> {
 	pub fn load(storage: &'a mut State, root: &'a mut H256) -> Self {
 		let trie = crate::storage::get_state_trie(storage, root);
-		Self { cache: Default::default(), trie }
+		Self { cache: Default::default(), trie, keys_to_remove: Default::default() }
 	}
 
 	pub fn is_empty(&self) -> bool {
@@ -66,14 +67,25 @@ impl<'a> OffchainState<'a> {
 	}
 
 	pub fn insert(&mut self, key: Vec<u8>, value: Vec<u8>) {
+		self.keys_to_remove.remove(&key);
 		self.cache.insert(key, value);
+	}
+
+	pub fn remove(&mut self, key: Vec<u8>) {
+		self.cache.remove(&key);
+		self.keys_to_remove.insert(key);
 	}
 
 	pub fn commit(&mut self) -> Result<H256, &'static str> {
 		for (key, value) in self.cache.iter() {
 			self.trie.insert(key, value).map_err(map_trie_error)?;
 		}
+
+		for key in &self.keys_to_remove {
+			self.trie.remove(&key).map_err(map_trie_error)?;
+		}
 		self.cache.clear();
+		self.keys_to_remove.clear();
 		self.trie.commit();
 		Ok(*self.trie.root())
 	}
@@ -266,6 +278,32 @@ mod tests {
 		storage::{get_state_trie, load_trie_root, store_trie_root, OffchainState, State},
 		tests::register_offchain_ext,
 	};
+
+	#[test]
+	pub fn test_removal_same_as_not_existing(){
+		let mut ext = new_test_ext();
+		register_offchain_ext(&mut ext);
+		log::trace!(target:"ocex","test_trie_storage test starting..");
+		ext.execute_with(|| {
+			let mut root = load_trie_root();
+			{
+				let mut storage = State;
+
+				let mut state = OffchainState::load(&mut storage, &mut root);
+
+				let empty_root = state.commit().unwrap();
+
+				state.insert(b"1".to_vec(), b"a".to_vec());
+				let intermediate_root1 = state.commit().unwrap();
+				assert_ne!(empty_root,intermediate_root1);
+				state.insert(b"2".to_vec(), b"b".to_vec());
+				let _intermediate_root2 = state.commit().unwrap();
+				state.remove(b"2".to_vec());
+				let final_root = state.commit().unwrap();
+				assert_eq!(intermediate_root1,final_root)
+			}});
+	}
+
 
 	#[test]
 	pub fn test_commit_change_revert_pattern() {
