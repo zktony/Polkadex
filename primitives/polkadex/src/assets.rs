@@ -79,6 +79,51 @@ pub trait Resolver<
 		Ok(())
 	}
 
+	fn resolve_deposit_parachain(
+		asset: AssetId,
+		amount: Balance,
+		who: &AccountId,
+		admin: AccountId,
+		min_balance: Balance,
+		locking_account: AccountId,
+	) -> Result<(), DispatchError> {
+		if asset == NativeAssetId::get() {
+			Native::mint_into(who, amount.saturated_into())?;
+		} else {
+			println!(
+				"Came here {:?} free balance {:?}",
+				asset.into(),
+				Others::balance(asset.into(), who)
+			);
+			if !Others::asset_exists(asset.into()) {
+				Others::create(asset.into(), admin, true, min_balance.saturated_into())?;
+			}
+			Others::mint_into(asset.into(), who, amount.saturated_into())?;
+		}
+		Ok(())
+	}
+
+	fn resolver_withdraw_parachain(
+		asset: AssetId,
+		amount: Balance,
+		who: &AccountId,
+		_locking_account: AccountId,
+	) -> Result<(), DispatchError> {
+		if asset == NativeAssetId::get() {
+			Native::burn_from(who, amount.saturated_into(), Precision::Exact, Fortitude::Force)?;
+		} else {
+			println!("Here ^^ {:?} --- {:?}", asset.into(), Others::balance(asset.into(), who));
+			Others::burn_from(
+				asset.into(),
+				who,
+				amount.saturated_into(),
+				Precision::Exact,
+				Fortitude::Polite,
+			)?;
+		}
+		Ok(())
+	}
+
 	/// Deposit will burn tokens if asset is non native and in case of native, will transfer
 	/// native tokens from `who` to `NativeLockingAccount`
 	fn resolver_withdraw(
@@ -95,6 +140,7 @@ pub trait Resolver<
 				Preservation::Preserve,
 			)?;
 		} else {
+			println!("Here ^^ {:?} --- {:?}", asset.into(), Others::balance(asset.into(), who));
 			Others::burn_from(
 				asset.into(),
 				who,

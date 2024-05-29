@@ -26,6 +26,7 @@ use frame_support::{
 };
 use frame_system::EnsureRoot;
 
+use orml_traits::location::RelativeReserveProvider;
 use orml_traits::{location::AbsoluteReserveProvider, parameter_type_with_key};
 use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
@@ -167,7 +168,7 @@ impl xcm_executor::Config for XcmConfig {
 	// How to withdraw and deposit an asset.
 	type AssetTransactor = XcmHelper;
 	type OriginConverter = XcmOriginToTransactDispatchOrigin;
-	type IsReserve = MultiNativeAsset<AbsoluteReserveProvider>;
+	type IsReserve = MultiNativeAsset<RelativeReserveProvider>;
 	// Teleporting is disabled.
 	type IsTeleporter = ();
 	type Aliasers = Nothing;

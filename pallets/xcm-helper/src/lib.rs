@@ -149,7 +149,7 @@ pub mod pallet {
 		},
 		prelude::Parachain,
 		v3::AssetId,
-		VersionedMultiAssets, VersionedMultiLocation,
+		IntoVersion, VersionedMultiAssets, VersionedMultiLocation,
 	};
 	use xcm_executor::{
 		traits::{ConvertLocation as MoreConvert, TransactAsset},
@@ -222,6 +222,8 @@ pub mod pallet {
 		type NativeAssetId: Get<Self::AssetId>;
 		/// Weight Info
 		type WeightInfo: XcmHelperWeightInfo;
+		/// Sibling Address Converter
+		type SiblingAddressConverter: xcm_executor::traits::ConvertLocation<Self::AccountId>;
 	}
 
 	/// Pending Withdrawals
@@ -273,6 +275,8 @@ pub mod pallet {
 			polkadex_primitives::AssetId,
 			ExtraData,
 		),
+		/// Sibling Deposit
+		SiblingDeposit(Box<MultiLocation>, Box<MultiAsset>),
 		/// Asset Withdraw using XCM
 		/// parameters. [id, asset_id]
 		AssetWithdrawn(H160, polkadex_primitives::AssetId),
@@ -407,31 +411,56 @@ pub mod pallet {
 		) -> xcm::latest::Result {
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
-
-			let (recipient, extra) =
-				extract_data_from_multilocation(*who).ok_or(XcmError::FailedToDecode)?;
-
-			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
-			let deposit: Deposit<T::AccountId> = Deposit {
-				id: Self::new_random_id(None),
-				recipient: recipient.into(),
-				asset_id,
-				amount,
-				extra: extra.clone(),
-			};
-
-			let parachain_network_id = T::SubstrateNetworkId::get();
-			let unique_id = deposit.id;
-			T::Executor::execute_withdrawals(parachain_network_id, sp_std::vec![deposit].encode())
+			if let (Some(account), polkadex_primitives::AssetId::Polkadex) =
+				(T::SiblingAddressConverter::convert_location(who), asset_id)
+			{
+				let pallet_account: T::AccountId =
+					T::AssetHandlerPalletId::get().into_account_truncating();
+				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
+				if Self::resolve_deposit_parachain(
+					asset_id.into(),
+					amount,
+					&account,
+					pallet_account.clone(),
+					1u128,
+					pallet_account.clone(),
+				)
+				.is_err()
+				{
+					log::error!(target:"xcm-helper","Deposit Failed");
+				};
+				Self::deposit_event(Event::<T>::SiblingDeposit(
+					Box::new(*who),
+					Box::new(what.clone()),
+				));
+			} else {
+				let (recipient, extra) =
+					extract_data_from_multilocation(*who).ok_or(XcmError::FailedToDecode)?;
+				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
+				let asset_id = Self::generate_asset_id_for_parachain(*id);
+				let deposit: Deposit<T::AccountId> = Deposit {
+					id: Self::new_random_id(None),
+					recipient: recipient.into(),
+					asset_id,
+					amount,
+					extra: extra.clone(),
+				};
+				let parachain_network_id = T::SubstrateNetworkId::get();
+				let unique_id = deposit.id;
+				T::Executor::execute_withdrawals(
+					parachain_network_id,
+					sp_std::vec![deposit].encode(),
+				)
 				.map_err(|_| XcmError::Trap(102))?;
-			Self::deposit_event(Event::<T>::AssetDeposited(
-				unique_id,
-				Box::new(*who),
-				Box::new(what.clone()),
-				asset_id,
-				extra,
-			));
+				Self::deposit_event(Event::<T>::AssetDeposited(
+					unique_id,
+					Box::new(*who),
+					Box::new(what.clone()),
+					asset_id,
+					extra,
+				));
+			}
 			Ok(())
 		}
 
@@ -443,13 +472,19 @@ pub mod pallet {
 			_context: Option<&XcmContext>,
 		) -> sp_std::result::Result<Assets, XcmError> {
 			let MultiAsset { id: _, fun } = what;
-			let who = T::AccountIdConvert::convert_location(who).ok_or(XcmError::FailedToDecode)?;
+			let who_account =
+				T::AccountIdConvert::convert_location(who).ok_or(XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(what.id);
 			let pallet_account: T::AccountId =
 				T::AssetHandlerPalletId::get().into_account_truncating();
-			Self::resolver_withdraw(asset_id.into(), amount.saturated_into(), &who, pallet_account)
-				.map_err(|_| XcmError::Trap(25))?;
+			Self::resolver_withdraw_parachain(
+				asset_id.into(),
+				amount.saturated_into(),
+				&who_account,
+				pallet_account,
+			)
+			.map_err(|_| XcmError::Trap(26))?;
 			Ok(what.clone().into())
 		}
 
@@ -460,14 +495,16 @@ pub mod pallet {
 			to: &MultiLocation,
 			_context: &XcmContext,
 		) -> sp_std::result::Result<Assets, XcmError> {
+			//panic!("Transfer is called from {:?} to {:?} with asset {:?}", from, to, asset);
 			let MultiAsset { id, fun } = asset;
 			let from =
 				T::AccountIdConvert::convert_location(from).ok_or(XcmError::FailedToDecode)?;
 			let to = T::AccountIdConvert::convert_location(to).ok_or(XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
-			Self::resolve_transfer(asset_id.into(), &from, &to, amount)
-				.map_err(|_| XcmError::Trap(102))?;
+
+			// Self::resolve_transfer(asset_id.into(), &from, &to, amount)
+			// 	.map_err(|_| XcmError::Trap(102))?;
 			Ok(asset.clone().into())
 		}
 	}
@@ -504,7 +541,7 @@ pub mod pallet {
 			.ok_or(Error::<T>::UnableToConvertToAccount)?;
 			let pallet_account: T::AccountId =
 				T::AssetHandlerPalletId::get().into_account_truncating();
-			Self::resolver_deposit(
+			Self::resolve_deposit_parachain(
 				withdrawal.asset_id.into(),
 				withdrawal.amount,
 				&destination_account,
@@ -618,6 +655,10 @@ pub mod pallet {
 			<PendingWithdrawals<T>>::insert(block_no, vec![withdrawal]);
 		}
 
+		pub fn insert_parachain_asset(asset: AssetId, asset_id: polkadex_primitives::AssetId) {
+			<ParachainAssets<T>>::insert(asset_id, asset);
+		}
+
 		pub fn handle_new_pending_withdrawals(n: BlockNumberFor<T>) {
 			let mut failed_withdrawal: Vec<Withdraw> = Vec::default();
 			<PendingWithdrawals<T>>::mutate(n, |withdrawals| {
@@ -651,7 +692,15 @@ pub mod pallet {
 									};
 									let pallet_account: T::AccountId =
 										T::AssetHandlerPalletId::get().into_account_truncating();
-									if Self::resolver_deposit(
+									let destination_location = match destination {
+										VersionedMultiLocation::V3(location) => location,
+										_ => {
+											failed_withdrawal.push(withdrawal);
+											log::error!(target:"xcm-helper","Withdrawal failed: Not able to decode destination");
+											continue;
+										},
+									};
+									if Self::resolve_deposit_parachain(
 										withdrawal.asset_id.into(),
 										withdrawal.amount,
 										&pallet_account,
@@ -665,7 +714,7 @@ pub mod pallet {
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 									};
 									// Deposit Fee
-									if Self::resolver_deposit(
+									if Self::resolve_deposit_parachain(
 										fee_asset_id.into(),
 										fee_amount,
 										&pallet_account,
@@ -678,21 +727,20 @@ pub mod pallet {
 										failed_withdrawal.push(withdrawal.clone());
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 									};
-									if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
-										RawOrigin::Signed(
-											T::AssetHandlerPalletId::get()
-												.into_account_truncating(),
-										)
-										.into(),
-										Box::new(vec![multi_asset, fee_multi_asset].into()),
-										1,
-										Box::new(destination.clone()),
-										cumulus_primitives_core::WeightLimit::Unlimited,
-									)
-									.is_err()
-									{
+									if let Err(err) =
+										orml_xtokens::module::Pallet::<T>::transfer_multiassets(
+											RawOrigin::Signed(
+												T::AssetHandlerPalletId::get()
+													.into_account_truncating(),
+											)
+											.into(),
+											Box::new(vec![multi_asset, fee_multi_asset].into()),
+											1,
+											Box::new(destination.clone()),
+											cumulus_primitives_core::WeightLimit::Unlimited,
+										) {
 										failed_withdrawal.push(withdrawal.clone());
-										log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+										log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls: {:?}", err);
 									} else {
 										// Deposit event
 										Self::deposit_event(Event::<T>::AssetWithdrawn(
@@ -708,8 +756,40 @@ pub mod pallet {
 								};
 								let pallet_account: T::AccountId =
 									T::AssetHandlerPalletId::get().into_account_truncating();
+								let destination_location = match destination {
+									VersionedMultiLocation::V3(location) => location,
+									_ => {
+										failed_withdrawal.push(withdrawal);
+										log::error!(target:"xcm-helper","Withdrawal failed: Not able to decode destination");
+										continue;
+									},
+								};
+								if let (
+									Some(soverign_account),
+									polkadex_primitives::AssetId::Polkadex,
+								) = (
+									T::SiblingAddressConverter::convert_location(
+										&destination_location,
+									),
+									withdrawal.asset_id,
+								) {
+									// Deposit to Sovereign Account
+									if Self::resolve_deposit_parachain(
+										withdrawal.asset_id.into(),
+										withdrawal.amount,
+										&soverign_account,
+										pallet_account.clone(),
+										1u128,
+										pallet_account.clone(),
+									)
+									.is_err()
+									{
+										failed_withdrawal.push(withdrawal.clone());
+										log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
+									};
+								}
 								// Mint
-								if Self::resolver_deposit(
+								if Self::resolve_deposit_parachain(
 									withdrawal.asset_id.into(),
 									withdrawal.amount,
 									&pallet_account,
@@ -722,20 +802,20 @@ pub mod pallet {
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 								};
-								if orml_xtokens::module::Pallet::<T>::transfer_multiassets(
-									RawOrigin::Signed(
-										T::AssetHandlerPalletId::get().into_account_truncating(),
-									)
-									.into(),
-									Box::new(multi_asset.into()),
-									0,
-									Box::new(destination.clone()),
-									cumulus_primitives_core::WeightLimit::Unlimited,
-								)
-								.is_err()
-								{
+								if let Err(err) =
+									orml_xtokens::module::Pallet::<T>::transfer_multiassets(
+										RawOrigin::Signed(
+											T::AssetHandlerPalletId::get()
+												.into_account_truncating(),
+										)
+										.into(),
+										Box::new(multi_asset.into()),
+										0,
+										Box::new(destination.clone()),
+										cumulus_primitives_core::WeightLimit::Unlimited,
+									) {
 									failed_withdrawal.push(withdrawal.clone());
-									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls");
+									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls {:?}", err);
 								} else {
 									// Deposit event
 									Self::deposit_event(Event::<T>::AssetWithdrawn(
@@ -744,6 +824,7 @@ pub mod pallet {
 									))
 								}
 							} else {
+								log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
 								failed_withdrawal.push(withdrawal)
 							}
 						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
