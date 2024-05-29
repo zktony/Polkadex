@@ -90,11 +90,6 @@ pub trait Resolver<
 		if asset == NativeAssetId::get() {
 			Native::mint_into(who, amount.saturated_into())?;
 		} else {
-			println!(
-				"Came here {:?} free balance {:?}",
-				asset.into(),
-				Others::balance(asset.into(), who)
-			);
 			if !Others::asset_exists(asset.into()) {
 				Others::create(asset.into(), admin, true, min_balance.saturated_into())?;
 			}
@@ -112,7 +107,6 @@ pub trait Resolver<
 		if asset == NativeAssetId::get() {
 			Native::burn_from(who, amount.saturated_into(), Precision::Exact, Fortitude::Force)?;
 		} else {
-			println!("Here ^^ {:?} --- {:?}", asset.into(), Others::balance(asset.into(), who));
 			Others::burn_from(
 				asset.into(),
 				who,
@@ -140,7 +134,6 @@ pub trait Resolver<
 				Preservation::Preserve,
 			)?;
 		} else {
-			println!("Here ^^ {:?} --- {:?}", asset.into(), Others::balance(asset.into(), who));
 			Others::burn_from(
 				asset.into(),
 				who,
