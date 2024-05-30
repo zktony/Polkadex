@@ -85,7 +85,7 @@ pub trait Resolver<
 		who: &AccountId,
 		admin: AccountId,
 		min_balance: Balance,
-		locking_account: AccountId,
+		_locking_account: AccountId,
 	) -> Result<(), DispatchError> {
 		if asset == NativeAssetId::get() {
 			Native::mint_into(who, amount.saturated_into())?;

@@ -41,7 +41,6 @@ xcm-helper = { path = "../pallets/xcm-helper" }
 thea-message-handler = { path = "../pallets/thea-message-handler" }
 thea = { path = "../pallets/thea" }
 smallvec = "1.13.1"
-#polkadot-runtime-common = { workspace = true, default-features = false }
 
 
 

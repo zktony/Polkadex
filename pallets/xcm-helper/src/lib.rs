@@ -149,7 +149,7 @@ pub mod pallet {
 		},
 		prelude::Parachain,
 		v3::AssetId,
-		IntoVersion, VersionedMultiAssets, VersionedMultiLocation,
+		VersionedMultiAssets, VersionedMultiLocation,
 	};
 	use xcm_executor::{
 		traits::{ConvertLocation as MoreConvert, TransactAsset},
@@ -290,6 +290,14 @@ pub mod pallet {
 		NativeAssetIdMappingRegistered(polkadex_primitives::AssetId, Box<AssetId>),
 		/// Whitelisted Token removed
 		WhitelistedTokenRemoved(polkadex_primitives::AssetId),
+		/// Not able too decode Destination
+		NotAbleToDecodeDestination,
+		/// Not able to mint token
+		NotAbleToMintToken,
+		/// Not able to Make Xcm Call
+		NotAbleToMakeXcmCall,
+		/// Not able to handle Destination
+		NotAbleToHandleDestination,
 	}
 
 	// Errors inform users that something went wrong.
@@ -412,9 +420,7 @@ pub mod pallet {
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
-			if let (Some(account)) =
-				(T::SiblingAddressConverter::convert_location(who))
-			{
+			if let Some(account) = T::SiblingAddressConverter::convert_location(who) {
 				let pallet_account: T::AccountId =
 					T::AssetHandlerPalletId::get().into_account_truncating();
 				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
@@ -484,7 +490,7 @@ pub mod pallet {
 				&who_account,
 				pallet_account,
 			)
-			.map_err(|err| XcmError::Trap(110))?;
+			.map_err(|_| XcmError::Trap(110))?;
 			Ok(what.clone().into())
 		}
 
@@ -600,10 +606,9 @@ pub mod pallet {
 				== AssetId::Concrete(MultiLocation {
 					parents: 1,
 					interior: Junctions::X1(Parachain(T::ParachainId::get())),
-				}) || asset == AssetId::Concrete(MultiLocation {
-				parents: 0,
-				interior: Junctions::Here,
-			}) {
+				}) || asset
+				== AssetId::Concrete(MultiLocation { parents: 0, interior: Junctions::Here })
+			{
 				return polkadex_primitives::AssetId::Polkadex;
 			}
 			// If it's not native, then hash and generate the asset id
@@ -672,6 +677,8 @@ pub mod pallet {
 							Err(_) => {
 								failed_withdrawal.push(withdrawal);
 								log::error!(target:"xcm-helper","Withdrawal failed: Not able to decode destination");
+								// Emit Event
+								Self::deposit_event(Event::<T>::NotAbleToDecodeDestination);
 								continue;
 							},
 						};
@@ -693,14 +700,6 @@ pub mod pallet {
 									};
 									let pallet_account: T::AccountId =
 										T::AssetHandlerPalletId::get().into_account_truncating();
-									let destination_location = match destination {
-										VersionedMultiLocation::V3(location) => location,
-										_ => {
-											failed_withdrawal.push(withdrawal);
-											log::error!(target:"xcm-helper","Withdrawal failed: Not able to decode destination");
-											continue;
-										},
-									};
 									if Self::resolve_deposit_parachain(
 										withdrawal.asset_id.into(),
 										withdrawal.amount,
@@ -713,6 +712,7 @@ pub mod pallet {
 									{
 										failed_withdrawal.push(withdrawal.clone());
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
+										Self::deposit_event(Event::<T>::NotAbleToMintToken);
 									};
 									// Deposit Fee
 									if Self::resolve_deposit_parachain(
@@ -727,6 +727,7 @@ pub mod pallet {
 									{
 										failed_withdrawal.push(withdrawal.clone());
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
+										Self::deposit_event(Event::<T>::NotAbleToMintToken);
 									};
 									if let Err(err) =
 										orml_xtokens::module::Pallet::<T>::transfer_multiassets(
@@ -741,6 +742,7 @@ pub mod pallet {
 											cumulus_primitives_core::WeightLimit::Unlimited,
 										) {
 										failed_withdrawal.push(withdrawal.clone());
+										Self::deposit_event(Event::<T>::NotAbleToMakeXcmCall);
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls: {:?}", err);
 									} else {
 										// Deposit event
@@ -762,6 +764,7 @@ pub mod pallet {
 									_ => {
 										failed_withdrawal.push(withdrawal);
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to decode destination");
+										Self::deposit_event(Event::<T>::NotAbleToDecodeDestination);
 										continue;
 									},
 								};
@@ -817,6 +820,7 @@ pub mod pallet {
 									) {
 									failed_withdrawal.push(withdrawal.clone());
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to make xcm calls {:?}", err);
+									Self::deposit_event(Event::<T>::NotAbleToMakeXcmCall);
 								} else {
 									// Deposit event
 									Self::deposit_event(Event::<T>::AssetWithdrawn(
@@ -826,10 +830,12 @@ pub mod pallet {
 								}
 							} else {
 								log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
-								failed_withdrawal.push(withdrawal)
+								Self::deposit_event(Event::<T>::NotAbleToDecodeDestination);
+								failed_withdrawal.push(withdrawal);
 							}
 						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
 							failed_withdrawal.push(withdrawal);
+							Self::deposit_event(Event::<T>::NotAbleToHandleDestination);
 							log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
 						}
 					} else {

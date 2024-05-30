@@ -26,9 +26,8 @@ use frame_support::{
 	PalletId,
 };
 use frame_system::{EnsureRoot, EnsureSigned};
-use orml_traits::location::{AbsoluteReserveProvider, RelativeReserveProvider};
+use orml_traits::location::AbsoluteReserveProvider;
 use orml_traits::parameter_type_with_key;
-use orml_xcm_support::MultiNativeAsset;
 use pallet_xcm::XcmPassthrough;
 use polkadot_core_primitives::BlockNumber as RelayBlockNumber;
 use polkadot_parachain_primitives::primitives::{
@@ -45,17 +44,13 @@ use thea::ecdsa::AuthorityId;
 use thea::ecdsa::AuthoritySignature;
 use xcm::{latest::prelude::*, VersionedXcm};
 use xcm_builder::{
-	Account32Hash, AccountId32Aliases, AllowUnpaidExecutionFrom, ConvertedConcreteId,
-	CurrencyAdapter as XcmCurrencyAdapter, CurrencyAdapter, EnsureXcmOrigin, FixedRateOfFungible,
-	FixedWeightBounds, IsConcrete, NativeAsset, NoChecking, NonFungiblesAdapter, ParentIsPreset,
+	Account32Hash, AccountId32Aliases, AllowUnpaidExecutionFrom, EnsureXcmOrigin,
+	FixedRateOfFungible, FixedWeightBounds, NativeAsset, ParentIsPreset,
 	SiblingParachainConvertsVia, SignedAccountId32AsNative, SignedToAccountId32,
-	SovereignSignedViaLocation, TakeRevenue, UsingComponents,
+	SovereignSignedViaLocation, TakeRevenue,
 };
 use xcm_executor::traits::WeightTrader;
-use xcm_executor::{
-	traits::{ConvertLocation, JustTry},
-	Config, XcmExecutor,
-};
+use xcm_executor::{traits::ConvertLocation, Config, XcmExecutor};
 use xcm_helper::{AssetIdConverter, WhitelistedTokenHandler};
 
 pub type SovereignAccountOf = (
@@ -216,18 +211,19 @@ parameter_types! {
 	pub PdexLocation: MultiLocation = Here.into();
 }
 
-pub type LocalAssetTransactor = CurrencyAdapter<
-	// Use this currency:
-	Balances,
-	// Use this currency when it is a fungible asset matching the given location or name:
-	IsConcrete<RelayLocation>,
-	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
-	LocationToAccountId,
-	// Our chain's account ID type (we can't get away without mentioning it explicitly):
-	AccountId,
-	// We don't track any teleports.
-	(),
->;
+// Can be used later
+// pub type LocalAssetTransactor = CurrencyAdapter<
+// 	// Use this currency:
+// 	Balances,
+// 	// Use this currency when it is a fungible asset matching the given location or name:
+// 	IsConcrete<RelayLocation>,
+// 	// Do a simple punn to convert an AccountId32 MultiLocation into a native chain account ID:
+// 	LocationToAccountId,
+// 	// Our chain's account ID type (we can't get away without mentioning it explicitly):
+// 	AccountId,
+// 	// We don't track any teleports.
+// 	(),
+// >;
 
 pub type XcmRouter = super::ParachainXcmRouter<MsgQueue>;
 pub type Barrier = AllowUnpaidExecutionFrom<Everything>;
@@ -465,8 +461,6 @@ impl<T: Get<(MultiLocation, MultiAssetFilter)>> ContainsPair<MultiLocation, Mult
 parameter_types! {
 	pub RelayTokenForRelay: (MultiLocation, MultiAssetFilter) = (Parent.into(), Wild(AllOf { id: Concrete(Parent.into()), fun: WildFungible }));
 }
-
-pub type TrustedLockers = TrustedLockerCase<RelayTokenForRelay>;
 
 impl pallet_xcm::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;

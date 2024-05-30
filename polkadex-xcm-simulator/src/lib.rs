@@ -546,10 +546,7 @@ mod tests {
 				extra: ExtraData::None,
 			};
 			assert_ok!(Balances::mint_into(&XcmHelper::get_pallet_account(), 100000000000000000));
-			XcmHelper::insert_parachain_asset(
-				asset_id_ml,
-				polkadex_primitives::AssetId::Polkadex,
-			);
+			XcmHelper::insert_parachain_asset(asset_id_ml, polkadex_primitives::AssetId::Polkadex);
 			let block_no = 1;
 			XcmHelper::insert_pending_withdrawal(block_no, deposit.clone());
 			XcmHelper::handle_new_pending_withdrawals(block_no);
@@ -561,16 +558,30 @@ mod tests {
 		MockNet::reset();
 
 		ParaC::execute_with(|| {
-			let multlocation =
-				MultiLocation { parents: 0, interior: Junctions::Here };
+			let multlocation = MultiLocation { parents: 0, interior: Junctions::Here };
 			let pdex_asset_id = AssetId::Concrete(multlocation);
-			assert_ok!(Balances::mint_into(&XcmHelper::get_pallet_account(), 100_000_000_000_000_000));
-			let para_a = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
-			let para_b = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
-			let para_c = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(3)) };
-			assert_ok!(Balances::mint_into(&XcmHelper::sibling_account_converter(para_a).unwrap(), 100_000_000_000_000_000));
-			assert_ok!(Balances::mint_into(&XcmHelper::sibling_account_converter(para_b).unwrap(), 100_000_000_000_000_000));
-			assert_ok!(Balances::mint_into(&XcmHelper::sibling_account_converter(para_c).unwrap(), 100_000_000_000_000_000));
+			assert_ok!(Balances::mint_into(
+				&XcmHelper::get_pallet_account(),
+				100_000_000_000_000_000
+			));
+			let para_a =
+				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
+			let para_b =
+				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
+			let para_c =
+				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(3)) };
+			assert_ok!(Balances::mint_into(
+				&XcmHelper::sibling_account_converter(para_a).unwrap(),
+				100_000_000_000_000_000
+			));
+			assert_ok!(Balances::mint_into(
+				&XcmHelper::sibling_account_converter(para_b).unwrap(),
+				100_000_000_000_000_000
+			));
+			assert_ok!(Balances::mint_into(
+				&XcmHelper::sibling_account_converter(para_c).unwrap(),
+				100_000_000_000_000_000
+			));
 			XcmHelper::insert_parachain_asset(
 				pdex_asset_id,
 				polkadex_primitives::AssetId::Polkadex,
@@ -606,8 +617,7 @@ mod tests {
 			XcmHelper::handle_new_pending_withdrawals(block_no);
 		});
 		ParaC::execute_with(|| {
-			let multlocation =
-				MultiLocation { parents: 0, interior: Junctions::Here };
+			let multlocation = MultiLocation { parents: 0, interior: Junctions::Here };
 			let pdex_asset_id = AssetId::Concrete(multlocation);
 			assert_ok!(Balances::mint_into(&XcmHelper::get_pallet_account(), 100000000000000000));
 			XcmHelper::insert_parachain_asset(
