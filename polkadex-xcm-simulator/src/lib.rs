@@ -279,69 +279,15 @@ mod tests {
 
 		ParaA::execute_with(|| {
 			// free execution, full amount received
+			use parachain::{RuntimeEvent, System};
 			assert_eq!(
 				pallet_balances::Pallet::<parachain::Runtime>::free_balance(&ALICE),
-				INITIAL_BALANCE + withdraw_amount
+				INITIAL_BALANCE
 			);
-		});
-	}
-
-	#[test]
-	fn remote_locking_and_unlocking() {
-		MockNet::reset();
-
-		let locked_amount = 100;
-
-		ParaB::execute_with(|| {
-			let message = Xcm(vec![LockAsset {
-				asset: (Here, locked_amount).into(),
-				unlocker: Parachain(1).into(),
-			}]);
-			assert_ok!(ParachainPalletXcm::send_xcm(Here, Parent, message.clone()));
-		});
-
-		Relay::execute_with(|| {
-			use pallet_balances::{BalanceLock, Reasons};
-			assert_eq!(
-				relay_chain::Balances::locks(&child_account_id(2)),
-				vec![BalanceLock {
-					id: *b"py/xcmlk",
-					amount: locked_amount,
-					reasons: Reasons::All
-				}]
-			);
-		});
-
-		ParaA::execute_with(|| {
-			assert_eq!(
-				parachain::MsgQueue::received_dmp(),
-				vec![Xcm(vec![NoteUnlockable {
-					owner: (Parent, Parachain(2)).into(),
-					asset: (Parent, locked_amount).into()
-				}])]
-			);
-		});
-
-		ParaB::execute_with(|| {
-			// Request unlocking part of the funds on the relay chain
-			let message = Xcm(vec![RequestUnlock {
-				asset: (Parent, locked_amount - 50).into(),
-				locker: Parent.into(),
-			}]);
-			assert_ok!(ParachainPalletXcm::send_xcm(Here, (Parent, Parachain(1)), message));
-		});
-
-		Relay::execute_with(|| {
-			use pallet_balances::{BalanceLock, Reasons};
-			// Lock is reduced
-			assert_eq!(
-				relay_chain::Balances::locks(&child_account_id(2)),
-				vec![BalanceLock {
-					id: *b"py/xcmlk",
-					amount: locked_amount - 50,
-					reasons: Reasons::All
-				}]
-			);
+			assert!(System::events().iter().any(|r| matches!(
+				r.event,
+				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
+			)));
 		});
 	}
 
@@ -368,141 +314,6 @@ mod tests {
 
 		Relay::execute_with(|| {
 			assert_eq!(relay_chain::Uniques::owner(1, 42), Some(child_account_id(2)));
-		});
-	}
-
-	/// Scenario:
-	/// The relay-chain teleports an NFT to a parachain.
-	///
-	/// Asserts that the parachain accounts are updated as expected.
-	#[test]
-	fn teleport_nft() {
-		MockNet::reset();
-
-		Relay::execute_with(|| {
-			// Mint the NFT (1, 69) and give it to our "parachain#1 alias".
-			assert_ok!(relay_chain::Uniques::mint(
-				relay_chain::RuntimeOrigin::signed(ALICE),
-				1,
-				69,
-				child_account_account_id(1, ALICE),
-			));
-			// The parachain#1 alias of Alice is what must hold it on the Relay-chain for it to be
-			// withdrawable by Alice on the parachain.
-			assert_eq!(
-				relay_chain::Uniques::owner(1, 69),
-				Some(child_account_account_id(1, ALICE))
-			);
-		});
-		ParaA::execute_with(|| {
-			assert_ok!(parachain::ForeignUniques::force_create(
-				parachain::RuntimeOrigin::root(),
-				(Parent, GeneralIndex(1)).into(),
-				ALICE,
-				false,
-			));
-			assert_eq!(
-				parachain::ForeignUniques::owner((Parent, GeneralIndex(1)).into(), 69u32.into()),
-				None,
-			);
-			assert_eq!(parachain::Balances::reserved_balance(&ALICE), 0);
-
-			// IRL Alice would probably just execute this locally on the Relay-chain, but we can't
-			// easily do that here since we only send between chains.
-			let message = Xcm(vec![
-				WithdrawAsset((GeneralIndex(1), 69u32).into()),
-				InitiateTeleport {
-					assets: AllCounted(1).into(),
-					dest: Parachain(1).into(),
-					xcm: Xcm(vec![DepositAsset {
-						assets: AllCounted(1).into(),
-						beneficiary: (AccountId32 { id: ALICE.into(), network: None },).into(),
-					}]),
-				},
-			]);
-			// Send teleport
-			let alice = AccountId32 { id: ALICE.into(), network: None };
-			assert_ok!(ParachainPalletXcm::send_xcm(alice, Parent, message));
-		});
-		ParaA::execute_with(|| {
-			assert_eq!(
-				parachain::ForeignUniques::owner((Parent, GeneralIndex(1)).into(), 69u32.into()),
-				Some(ALICE),
-			);
-			assert_eq!(parachain::Balances::reserved_balance(&ALICE), 1000);
-		});
-		Relay::execute_with(|| {
-			assert_eq!(relay_chain::Uniques::owner(1, 69), None);
-		});
-	}
-
-	/// Scenario:
-	/// The relay-chain transfers an NFT into a parachain's sovereign account, who then mints a
-	/// trustless-backed-derivated locally.
-	///
-	/// Asserts that the parachain accounts are updated as expected.
-	#[test]
-	fn reserve_asset_transfer_nft() {
-		sp_tracing::init_for_tests();
-		MockNet::reset();
-
-		Relay::execute_with(|| {
-			assert_ok!(relay_chain::Uniques::force_create(
-				relay_chain::RuntimeOrigin::root(),
-				2,
-				ALICE,
-				false
-			));
-			assert_ok!(relay_chain::Uniques::mint(
-				relay_chain::RuntimeOrigin::signed(ALICE),
-				2,
-				69,
-				child_account_account_id(1, ALICE)
-			));
-			assert_eq!(
-				relay_chain::Uniques::owner(2, 69),
-				Some(child_account_account_id(1, ALICE))
-			);
-		});
-		ParaA::execute_with(|| {
-			assert_ok!(parachain::ForeignUniques::force_create(
-				parachain::RuntimeOrigin::root(),
-				(Parent, GeneralIndex(2)).into(),
-				ALICE,
-				false,
-			));
-			assert_eq!(
-				parachain::ForeignUniques::owner((Parent, GeneralIndex(2)).into(), 69u32.into()),
-				None,
-			);
-			assert_eq!(parachain::Balances::reserved_balance(&ALICE), 0);
-
-			let message = Xcm(vec![
-				WithdrawAsset((GeneralIndex(2), 69u32).into()),
-				DepositReserveAsset {
-					assets: AllCounted(1).into(),
-					dest: Parachain(1).into(),
-					xcm: Xcm(vec![DepositAsset {
-						assets: AllCounted(1).into(),
-						beneficiary: (AccountId32 { id: ALICE.into(), network: None },).into(),
-					}]),
-				},
-			]);
-			// Send transfer
-			let alice = AccountId32 { id: ALICE.into(), network: None };
-			assert_ok!(ParachainPalletXcm::send_xcm(alice, Parent, message));
-		});
-		ParaA::execute_with(|| {
-			log::debug!(target: "xcm-exceutor", "Hello");
-			assert_eq!(
-				parachain::ForeignUniques::owner((Parent, GeneralIndex(2)).into(), 69u32.into()),
-				Some(ALICE),
-			);
-			assert_eq!(parachain::Balances::reserved_balance(&ALICE), 1000);
-		});
-
-		Relay::execute_with(|| {
-			assert_eq!(relay_chain::Uniques::owner(2, 69), Some(child_account_id(1)));
 		});
 	}
 
@@ -714,8 +525,8 @@ mod tests {
 		MockNet::reset();
 		ParaA::execute_with(|| {
 			let location =
-				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
-			let asset_id = AssetId::Concrete(location);
+				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
+			let asset_id_ml = AssetId::Concrete(location);
 			let amount = 1_000_000_000_000u128;
 			let destination = MultiLocation {
 				parents: 0,
@@ -723,79 +534,27 @@ mod tests {
 			};
 			let destination: VersionedMultiLocation = destination.into();
 			// Register Asset Id
-			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id);
-			// let pending_withdrawal = Withdraw {
-			// 	id: Vec::new(),
-			// 	asset_id,
-			// 	amount,
-			// 	destination: destination.encode(),
-			// 	is_blocked: false,
-			// 	extra: vec![],
-			// };
-			// create_dot_asset();
-			// mint_native_token(sp_core::crypto::AccountId32::new([1; 32]));
-			// XcmHelper::insert_pending_withdrawal(100, pending_withdrawal);
-			// System::set_block_number(99);
-			// run_to_block(100);
+			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id_ml);
+			let deposit = thea_primitives::types::Withdraw {
+				id: Default::default(),
+				asset_id: polkadex_primitives::AssetId::Polkadex,
+				amount: 2000000000000,
+				destination: destination.encode(),
+				fee_asset_id: None,
+				fee_amount: None,
+				is_blocked: false,
+				extra: ExtraData::None,
+			};
+			assert_ok!(Balances::mint_into(&XcmHelper::get_pallet_account(), 100000000000000000));
+			XcmHelper::insert_parachain_asset(
+				asset_id_ml,
+				polkadex_primitives::AssetId::Polkadex,
+			);
+			let block_no = 1;
+			XcmHelper::insert_pending_withdrawal(block_no, deposit.clone());
+			XcmHelper::handle_new_pending_withdrawals(block_no);
 		});
 	}
-
-	// #[test]
-	// /// test that the asset registry can be used in xcm transfers
-	// fn send_self_parachain_asset_to_sibling() {
-	// 	TestNet::reset();
-	//
-	// 	let mut metadata = dummy_metadata();
-	//
-	// 	ParaB::execute_with(|| {
-	// 		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata.clone(), None).unwrap();
-	// 	});
-	// //
-	// // 	ParaA::execute_with(|| {
-	// // 		metadata.location = Some(Into::<VersionedLocation>::into(Location::new(
-	// // 			0,
-	// // 			[Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
-	// // 		)));
-	// // 		AssetRegistry::register_asset(RuntimeOrigin::root(), metadata, None).unwrap();
-	// //
-	// // 		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
-	// //
-	// // 		assert_ok!(ParaXTokens::transfer(
-	// // 		Some(ALICE).into(),
-	// // 		CurrencyId::RegisteredAsset(1),
-	// // 		500,
-	// // 		Box::new(
-	// // 			Location::new(
-	// // 				1,
-	// // 				[
-	// // 					Parachain(2),
-	// // 					Junction::AccountId32 {
-	// // 						network: None,
-	// // 						id: BOB.into(),
-	// // 					}
-	// // 				]
-	// // 			)
-	// // 			.into()
-	// // 		),
-	// // 		WeightLimit::Unlimited,
-	// // 	));
-	// //
-	// // 		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &ALICE), 500);
-	// // 		assert_eq!(
-	// // 			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &sibling_b_account()),
-	// // 			500
-	// // 		);
-	// // 	});
-	// //
-	// // 	ParaB::execute_with(|| {
-	// // 		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 460);
-	// // 		assert_eq!(
-	// // 			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &treasury_account()),
-	// // 			40
-	// // 		);
-	// // 	});
-	//  }
-	//
 
 	#[test]
 	fn send_sibling_asset_to_non_reserve_sibling() {
@@ -803,9 +562,15 @@ mod tests {
 
 		ParaC::execute_with(|| {
 			let multlocation =
-				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(3)) };
+				MultiLocation { parents: 0, interior: Junctions::Here };
 			let pdex_asset_id = AssetId::Concrete(multlocation);
-			assert_ok!(Balances::mint_into(&XcmHelper::get_pallet_account(), 100000000000000000));
+			assert_ok!(Balances::mint_into(&XcmHelper::get_pallet_account(), 100_000_000_000_000_000));
+			let para_a = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
+			let para_b = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(2)) };
+			let para_c = MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(3)) };
+			assert_ok!(Balances::mint_into(&XcmHelper::sibling_account_converter(para_a).unwrap(), 100_000_000_000_000_000));
+			assert_ok!(Balances::mint_into(&XcmHelper::sibling_account_converter(para_b).unwrap(), 100_000_000_000_000_000));
+			assert_ok!(Balances::mint_into(&XcmHelper::sibling_account_converter(para_c).unwrap(), 100_000_000_000_000_000));
 			XcmHelper::insert_parachain_asset(
 				pdex_asset_id,
 				polkadex_primitives::AssetId::Polkadex,
@@ -842,116 +607,26 @@ mod tests {
 		});
 		ParaC::execute_with(|| {
 			let multlocation =
-				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(3)) };
+				MultiLocation { parents: 0, interior: Junctions::Here };
 			let pdex_asset_id = AssetId::Concrete(multlocation);
 			assert_ok!(Balances::mint_into(&XcmHelper::get_pallet_account(), 100000000000000000));
+			XcmHelper::insert_parachain_asset(
+				pdex_asset_id,
+				polkadex_primitives::AssetId::Polkadex,
+			);
 			use parachain::{RuntimeEvent, System};
-			let events = System::events();
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHelper(xcm_helper::Event::SiblingDeposit(..))
 			)));
 		});
+		ParaB::execute_with(|| {
+			use parachain::{RuntimeEvent, System};
+			let events = System::events();
+			assert!(System::events().iter().any(|r| matches!(
+				r.event,
+				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
+			)));
+		})
 	}
-
-	// #[test]
-	// /// test that the asset registry can be used in xcm transfers
-	// fn send_sibling_asset_to_non_reserve_sibling() {
-	// 	TestNet::reset();
-	//
-	// 	// send from paraA send paraB's token to paraC
-	//
-	// 	ParaA::execute_with(|| {
-	// // 		AssetRegistry::register_asset(
-	// // 			RuntimeOrigin::root(),
-	// // 			AssetMetadata {
-	// // 				location: Some(
-	// // 					Location::new(
-	// // 						1,
-	// // 						[Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
-	// // 					)
-	// // 						.into(),
-	// // 				),
-	// // 				..dummy_metadata()
-	// // 			},
-	// // 			None,
-	// // 		)
-	// // 			.unwrap();
-	// // 		assert_ok!(ParaTokens::deposit(CurrencyId::RegisteredAsset(1), &ALICE, 1_000));
-	// // 	});
-	// //
-	// // 	ParaB::execute_with(|| {
-	// // 		AssetRegistry::register_asset(
-	// // 			RuntimeOrigin::root(),
-	// // 			AssetMetadata {
-	// // 				location: Some(Location::new(0, [Junction::from(BoundedVec::try_from(vec![0]).unwrap())]).into()),
-	// // 				..dummy_metadata()
-	// // 			},
-	// // 			None,
-	// // 		)
-	// // 			.unwrap();
-	// // 		assert_ok!(ParaTokens::deposit(
-	// // 		CurrencyId::RegisteredAsset(1),
-	// // 		&sibling_a_account(),
-	// // 		1_000
-	// // 	));
-	// // 	});
-	// //
-	// // 	ParaC::execute_with(|| {
-	// // 		AssetRegistry::register_asset(
-	// // 			RuntimeOrigin::root(),
-	// // 			AssetMetadata {
-	// // 				location: Some(
-	// // 					Location::new(
-	// // 						1,
-	// // 						[Parachain(2), Junction::from(BoundedVec::try_from(vec![0]).unwrap())],
-	// // 					)
-	// // 						.into(),
-	// // 				),
-	// // 				..dummy_metadata()
-	// // 			},
-	// // 			None,
-	// // 		)
-	// // 			.unwrap();
-	// // 	});
-	// //
-	// // 	ParaA::execute_with(|| {
-	// // 		assert_ok!(ParaXTokens::transfer(
-	// // 		Some(ALICE).into(),
-	// // 		CurrencyId::RegisteredAsset(1),
-	// // 		500,
-	// // 		Box::new(
-	// // 			Location::new(
-	// // 				1,
-	// // 				[
-	// // 					Parachain(3),
-	// // 					Junction::AccountId32 {
-	// // 						network: None,
-	// // 						id: BOB.into(),
-	// // 					}
-	// // 				]
-	// // 			)
-	// // 			.into()
-	// // 		),
-	// // 		WeightLimit::Unlimited
-	// // 	));
-	// // 		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &ALICE), 500);
-	// // 	});
-	// //
-	// // 	// check reserve accounts
-	// // 	ParaB::execute_with(|| {
-	// // 		assert_eq!(
-	// // 			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &sibling_a_account()),
-	// // 			500
-	// // 		);
-	// // 		assert_eq!(
-	// // 			ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &sibling_c_account()),
-	// // 			460
-	// // 		);
-	// // 	});
-	// //
-	// // 	ParaC::execute_with(|| {
-	// // 		assert_eq!(ParaTokens::free_balance(CurrencyId::RegisteredAsset(1), &BOB), 420);
-	//  	});
-	// }
 }

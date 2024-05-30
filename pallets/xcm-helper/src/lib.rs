@@ -412,8 +412,8 @@ pub mod pallet {
 			// Create approved deposit
 			let MultiAsset { id, fun } = what;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
-			if let (Some(account), polkadex_primitives::AssetId::Polkadex) =
-				(T::SiblingAddressConverter::convert_location(who), asset_id)
+			if let (Some(account)) =
+				(T::SiblingAddressConverter::convert_location(who))
 			{
 				let pallet_account: T::AccountId =
 					T::AssetHandlerPalletId::get().into_account_truncating();
@@ -436,7 +436,7 @@ pub mod pallet {
 				));
 			} else {
 				let (recipient, extra) =
-					extract_data_from_multilocation(*who).ok_or(XcmError::FailedToDecode)?;
+					extract_data_from_multilocation(*who).ok_or(XcmError::Trap(99))?;
 				let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 				let asset_id = Self::generate_asset_id_for_parachain(*id);
 				let deposit: Deposit<T::AccountId> = Deposit {
@@ -484,7 +484,7 @@ pub mod pallet {
 				&who_account,
 				pallet_account,
 			)
-			.map_err(|_| XcmError::Trap(26))?;
+			.map_err(|err| XcmError::Trap(110))?;
 			Ok(what.clone().into())
 		}
 
@@ -495,16 +495,14 @@ pub mod pallet {
 			to: &MultiLocation,
 			_context: &XcmContext,
 		) -> sp_std::result::Result<Assets, XcmError> {
-			//panic!("Transfer is called from {:?} to {:?} with asset {:?}", from, to, asset);
 			let MultiAsset { id, fun } = asset;
 			let from =
 				T::AccountIdConvert::convert_location(from).ok_or(XcmError::FailedToDecode)?;
 			let to = T::AccountIdConvert::convert_location(to).ok_or(XcmError::FailedToDecode)?;
 			let amount: u128 = Self::get_amount(fun).ok_or(XcmError::Trap(101))?;
 			let asset_id = Self::generate_asset_id_for_parachain(*id);
-
-			// Self::resolve_transfer(asset_id.into(), &from, &to, amount)
-			// 	.map_err(|_| XcmError::Trap(102))?;
+			Self::resolve_transfer(asset_id.into(), &from, &to, amount)
+				.map_err(|_| XcmError::Trap(102))?;
 			Ok(asset.clone().into())
 		}
 	}
@@ -602,7 +600,10 @@ pub mod pallet {
 				== AssetId::Concrete(MultiLocation {
 					parents: 1,
 					interior: Junctions::X1(Parachain(T::ParachainId::get())),
-				}) {
+				}) || asset == AssetId::Concrete(MultiLocation {
+				parents: 0,
+				interior: Junctions::Here,
+			}) {
 				return polkadex_primitives::AssetId::Polkadex;
 			}
 			// If it's not native, then hash and generate the asset id
@@ -841,6 +842,10 @@ pub mod pallet {
 			if !failed_withdrawal.is_empty() {
 				<FailedWithdrawals<T>>::insert(n, failed_withdrawal);
 			}
+		}
+
+		pub fn sibling_account_converter(para_id: MultiLocation) -> Option<T::AccountId> {
+			T::SiblingAddressConverter::convert_location(&para_id)
 		}
 	}
 
