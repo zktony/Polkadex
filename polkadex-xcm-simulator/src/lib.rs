@@ -521,7 +521,7 @@ mod tests {
 	}
 
 	#[test]
-	fn test_on_initialize_with_non_native_asset_deposit_to_polkadex_parachain() {
+	fn test_on_initialize_with_native_asset_deposit_to_polkadex_parachain() {
 		MockNet::reset();
 		ParaA::execute_with(|| {
 			let location =
