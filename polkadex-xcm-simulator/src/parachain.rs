@@ -21,7 +21,7 @@ use core::marker::PhantomData;
 use frame_support::traits::AsEnsureOriginWithArg;
 use frame_support::{
 	construct_runtime, parameter_types,
-	traits::{ContainsPair, EnsureOrigin, EnsureOriginWithArg, Everything, EverythingBut, Nothing},
+	traits::{EnsureOrigin, EnsureOriginWithArg, Everything, EverythingBut, Nothing},
 	weights::{constants::WEIGHT_REF_TIME_PER_SECOND, Weight},
 	PalletId,
 };
@@ -446,16 +446,6 @@ pub type LocalOriginToLocation = SignedToAccountId32<RuntimeOrigin, AccountId, R
 #[cfg(feature = "runtime-benchmarks")]
 parameter_types! {
 	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
-}
-
-pub struct TrustedLockerCase<T>(PhantomData<T>);
-impl<T: Get<(MultiLocation, MultiAssetFilter)>> ContainsPair<MultiLocation, MultiAsset>
-	for TrustedLockerCase<T>
-{
-	fn contains(origin: &MultiLocation, asset: &MultiAsset) -> bool {
-		let (o, a) = T::get();
-		a.matches(asset) && &o == origin
-	}
 }
 
 parameter_types! {
