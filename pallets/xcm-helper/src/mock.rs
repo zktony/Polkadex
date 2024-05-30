@@ -127,6 +127,7 @@ impl xcm_helper::Config for Test {
 	type SubstrateNetworkId = ();
 	type NativeAssetId = NativeAssetId;
 	type WeightInfo = crate::weights::WeightInfo<Test>;
+	type SiblingAddressConverter = ();
 }
 
 parameter_types! {

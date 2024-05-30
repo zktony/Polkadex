@@ -152,11 +152,10 @@ pub type ParachainPalletXcm = pallet_xcm::Pallet<parachain::Runtime>;
 mod tests {
 	use super::*;
 
-	use crate::parachain::{Balances, System, XcmHelper};
+	use crate::parachain::{Balances, XcmHelper};
 	use codec::Encode;
 	use frame_support::traits::fungible::Mutate;
 	use frame_support::{assert_ok, weights::Weight};
-	use sp_io::misc::print_num;
 	use thea_primitives::extras::ExtraData;
 	use xcm::latest::QueryResponseInfo;
 	use xcm_simulator::TestExt;
@@ -512,7 +511,6 @@ mod tests {
 
 		ParaB::execute_with(|| {
 			use parachain::{RuntimeEvent, System};
-			let events = System::events();
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
@@ -527,14 +525,11 @@ mod tests {
 			let location =
 				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
 			let asset_id_ml = AssetId::Concrete(location);
-			let amount = 1_000_000_000_000u128;
 			let destination = MultiLocation {
 				parents: 0,
 				interior: Junctions::X1(Junction::AccountId32 { network: None, id: [1; 32] }),
 			};
 			let destination: VersionedMultiLocation = destination.into();
-			// Register Asset Id
-			let asset_id = XcmHelper::generate_asset_id_for_parachain(asset_id_ml);
 			let deposit = thea_primitives::types::Withdraw {
 				id: Default::default(),
 				asset_id: polkadex_primitives::AssetId::Polkadex,
@@ -632,7 +627,6 @@ mod tests {
 		});
 		ParaB::execute_with(|| {
 			use parachain::{RuntimeEvent, System};
-			let events = System::events();
 			assert!(System::events().iter().any(|r| matches!(
 				r.event,
 				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
