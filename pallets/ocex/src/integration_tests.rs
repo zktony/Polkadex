@@ -43,7 +43,7 @@ use rust_decimal::Decimal;
 use sequential_test::sequential;
 use sp_core::crypto::AccountId32;
 use sp_core::sr25519::Signature;
-use sp_core::{Pair, H256};
+use sp_core::{Pair, H160, H256};
 use sp_runtime::offchain::storage::StorageValueRef;
 use std::collections::BTreeMap;
 
@@ -82,66 +82,6 @@ fn test_run_on_chain_validation_trades_happy_path() {
 		assert_eq!(state_info.stid, 1);
 		assert_eq!(state_info.snapshot_id, 0);
 	});
-}
-
-#[test]
-#[sequential]
-fn test_lmp_complete_flow() {
-	new_test_ext().execute_with(|| {
-		set_lmp_config();
-		push_trade_user_actions(1, 1, 4768084);
-		assert_ok!(OCEX::run_on_chain_validation(1));
-		let snapshot_id: u64 = 1;
-		let mut key = LAST_PROCESSED_SNAPSHOT.to_vec();
-		key.append(&mut snapshot_id.encode());
-		let summay_ref = StorageValueRef::persistent(&key);
-		match summay_ref
-			.get::<(SnapshotSummary<AccountId32>, crate::sr25519::AuthoritySignature, u16)>()
-		{
-			Ok(Some((summary, signature, index))) => {
-				println!("Summary {:?}", summary);
-				assert_eq!(summary.snapshot_id, 1);
-				assert_eq!(summary.state_change_id, 1);
-				assert_eq!(summary.last_processed_blk, 4768084);
-				assert_ok!(OCEX::submit_snapshot(RuntimeOrigin::none(), summary, Vec::new()));
-			},
-			_ => panic!("Snapshot not found"),
-		};
-		OCEX::start_new_epoch(2);
-		push_trade_user_actions(2, 1, 4768085);
-		let s_info = StorageValueRef::persistent(&WORKER_STATUS);
-		s_info.set(&false);
-		assert_ok!(OCEX::run_on_chain_validation(2));
-		let snapshot_id: u64 = 2;
-		let mut key = LAST_PROCESSED_SNAPSHOT.to_vec();
-		key.append(&mut snapshot_id.encode());
-		let summay_ref = StorageValueRef::persistent(&key);
-		match summay_ref
-			.get::<(SnapshotSummary<AccountId32>, crate::sr25519::AuthoritySignature, u16)>()
-		{
-			Ok(Some((summary, signature, index))) => {
-				println!("Summary {:?}", summary);
-				assert_eq!(summary.snapshot_id, 2);
-				assert_eq!(summary.state_change_id, 2);
-				assert_eq!(summary.last_processed_blk, 4768085);
-				assert_ok!(OCEX::submit_snapshot(RuntimeOrigin::none(), summary, Vec::new()));
-			},
-			_ => panic!("Snapshot not found"),
-		};
-		OCEX::start_new_epoch(3);
-		let (maker_account, taker_account) = get_maker_and_taker_account();
-		let trading_pair = TradingPair { base: AssetId::Polkadex, quote: AssetId::Asset(1) };
-		assert_ok!(OCEX::claim_lmp_rewards(
-			RuntimeOrigin::signed(maker_account.clone()),
-			1,
-			trading_pair
-		));
-		assert_ok!(OCEX::claim_lmp_rewards(
-			RuntimeOrigin::signed(taker_account.clone()),
-			1,
-			trading_pair
-		));
-	})
 }
 
 #[test]
@@ -321,10 +261,18 @@ fn push_trade_user_actions(stid: u64, snapshot_id: u64, block_no: u64) {
 fn get_block_import(block_no: u64) -> u64 {
 	let block_no = block_no;
 	let (maker_account, taker_account) = get_maker_and_taker_account();
-	let maker_ingress_message =
-		IngressMessages::Deposit(maker_account, AssetId::Asset(1), Decimal::from(100));
-	let taker_ingress_message =
-		IngressMessages::Deposit(taker_account, AssetId::Polkadex, Decimal::from(100));
+	let maker_ingress_message = IngressMessages::Deposit(
+		H160::zero(),
+		maker_account,
+		AssetId::Asset(1),
+		Decimal::from(100),
+	);
+	let taker_ingress_message = IngressMessages::Deposit(
+		H160::zero(),
+		taker_account,
+		AssetId::Polkadex,
+		Decimal::from(100),
+	);
 	<IngressMessagesStorage<Test>>::insert(
 		block_no,
 		vec![maker_ingress_message, taker_ingress_message],

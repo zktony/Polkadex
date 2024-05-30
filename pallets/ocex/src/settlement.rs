@@ -161,7 +161,7 @@ impl<T: Config> Pallet<T> {
 		let pot_account: AccountId = FEE_POT_PALLET_ID.into_account_truncating();
 		// Handle Fees here, and update the total fees paid, maker volume for LMP calculations
 		// Update balances
-		let maker_fees = {
+		let _maker_fees = {
 			let (maker_asset, mut maker_credit) = trade.credit(true);
 			let maker_fees = maker_credit.saturating_mul(maker_fees.maker_fraction);
 			maker_credit = maker_credit.saturating_sub(maker_fees);
@@ -173,7 +173,7 @@ impl<T: Config> Pallet<T> {
 			sub_balance(state, &maker_asset.main, maker_asset.asset, maker_debit, false)?;
 			maker_fees
 		};
-		let taker_fees = {
+		let _taker_fees = {
 			let (taker_asset, mut taker_credit) = trade.credit(false);
 			let taker_fees = taker_credit.saturating_mul(taker_fees.taker_fraction);
 			taker_credit = taker_credit.saturating_sub(taker_fees);
@@ -187,7 +187,7 @@ impl<T: Config> Pallet<T> {
 		};
 
 		// Updates the LMP Storage
-		Self::update_lmp_storage_from_trade(state, trade, config, maker_fees, taker_fees)?;
+		// Self::update_lmp_storage_from_trade(state, trade, config, maker_fees, taker_fees)?;
 
 		Ok(())
 	}

@@ -27,6 +27,7 @@ use frame_system::RawOrigin;
 use parity_scale_codec::Decode;
 use polkadex_primitives::AssetId;
 use polkadex_primitives::UNIT_BALANCE;
+use sp_core::H160;
 use sp_std::collections::{btree_map::BTreeMap, btree_set::BTreeSet};
 use thea_primitives::types::{
 	IncomingMessage, MisbehaviourReport, SignedMessage, THEA_HOLD_REASON,
@@ -35,11 +36,11 @@ use thea_primitives::TheaBenchmarkHelper;
 
 fn generate_deposit_payload<T: Config>() -> Vec<Deposit<T::AccountId>> {
 	sp_std::vec![Deposit {
-		id: H256::zero().0.to_vec(),
+		id: H160::zero(),
 		recipient: T::AccountId::decode(&mut &[0u8; 32][..]).unwrap(),
-		asset_id: 1,
+		asset_id: AssetId::Asset(1),
 		amount: 0,
-		extra: Vec::new(),
+		extra: ExtraData::None,
 	}]
 }
 
@@ -245,7 +246,7 @@ benchmarks! {
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
-use sp_core::H256;
+use thea_primitives::extras::ExtraData;
 use thea_primitives::types::Deposit;
 
 #[cfg(test)]

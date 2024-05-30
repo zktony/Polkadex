@@ -17,10 +17,11 @@
 // along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use crate::lmp::keys::{
-	get_fees_paid_by_main_account, get_maker_volume_by_main_account_key,
+	get_fees_paid_by_main_account, get_lmp_config_key, get_maker_volume_by_main_account_key,
 	get_q_score_uptime_by_main_account, get_total_maker_volume_key,
 	get_trade_volume_by_main_account_key,
 };
+use crate::pallet::Accounts;
 use crate::{
 	pallet::{IngressMessages, PriceOracle, TraderMetrics, TradingPairs},
 	storage::OffchainState,
@@ -334,7 +335,8 @@ pub fn get_q_score_and_uptime(
 	}
 }
 
-/// Returns the individial Q score and uptime indexe
+/// Returns the individial Q score and uptime index
+#[allow(dead_code)]
 pub fn get_q_score_and_uptime_for_checkpoint(
 	state: &mut OffchainState,
 	epoch: u16,
@@ -357,6 +359,36 @@ pub fn get_q_score_and_uptime_for_checkpoint(
 }
 
 impl<T: Config> Pallet<T> {
+	/// Clears the lmp's offchain storage
+	pub fn clear_lmp_storages(state: &mut OffchainState) -> Result<(), &'static str> {
+		let current_epoch: u16 = <LMPEpoch<T>>::get();
+		let trading_pairs = <TradingPairs<T>>::iter_keys()
+			.map(|(base, quote)| TradingPair::from(quote, base))
+			.collect::<Vec<TradingPair>>();
+		let main_accounts = <Accounts<T>>::iter_keys().collect::<Vec<T::AccountId>>();
+		for main in &main_accounts {
+			let main_type: AccountId =
+				Decode::decode(&mut &main.encode()[..]).map_err(|_| "Unable to decode decimal")?;
+			for epoch in 0..=current_epoch {
+				for pair in &trading_pairs {
+					let key1 = get_trade_volume_by_main_account_key(epoch, *pair, &main_type);
+					let key2 = get_maker_volume_by_main_account_key(epoch, *pair, &main_type);
+					let key3 = get_total_maker_volume_key(epoch, *pair);
+					let key4 = get_fees_paid_by_main_account(epoch, *pair, &main_type);
+					let key5 = get_q_score_uptime_by_main_account(epoch, *pair, &main_type);
+					state.remove(key1);
+					state.remove(key2);
+					state.remove(key3);
+					state.remove(key4);
+					state.remove(key5);
+				}
+			}
+		}
+		let lmp_config_key = get_lmp_config_key();
+		state.remove(lmp_config_key);
+
+		Ok(())
+	}
 	/// Updates the respective offchain DB trie keys for LMP metrics from given trade
 	pub fn update_lmp_storage_from_trade(
 		state: &mut OffchainState,
@@ -482,12 +514,22 @@ impl<T: Config> LiquidityMining<T::AccountId, BalanceOf<T>> for Pallet<T> {
 			.saturating_mul(unit)
 			.to_u128()
 			.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
-		Self::do_deposit(pool.clone(), market.base, base_amount_in_u128.saturated_into())?;
+		Self::do_deposit(
+			Self::new_random_id(None),
+			pool.clone(),
+			market.base,
+			base_amount_in_u128.saturated_into(),
+		)?;
 		let quote_amount_in_u128 = quote_amount
 			.saturating_mul(unit)
 			.to_u128()
 			.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
-		Self::do_deposit(pool.clone(), market.quote, quote_amount_in_u128.saturated_into())?;
+		Self::do_deposit(
+			Self::new_random_id(None),
+			pool.clone(),
+			market.quote,
+			quote_amount_in_u128.saturated_into(),
+		)?;
 		let current_blk = frame_system::Pallet::<T>::current_block_number();
 		<IngressMessages<T>>::mutate(current_blk, |messages| {
 			messages.push(orderbook_primitives::ingress::IngressMessages::AddLiquidity(

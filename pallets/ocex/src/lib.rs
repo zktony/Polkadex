@@ -55,10 +55,12 @@ use frame_support::traits::fungible::Inspect as InspectNative;
 use frame_system::pallet_prelude::BlockNumberFor;
 use orderbook_primitives::lmp::LMPMarketConfig;
 use orderbook_primitives::ocex::TradingPairConfig;
+use orderbook_primitives::traits::OrderbookOperations;
 use orderbook_primitives::{
 	types::{AccountAsset, TradingPair},
 	SnapshotSummary, ValidatorSet, GENESIS_AUTHORITY_SET_ID,
 };
+use sp_core::H160;
 use sp_std::vec::Vec;
 
 #[cfg(test)]
@@ -144,6 +146,7 @@ pub trait OcexWeightInfo {
 #[frame_support::pallet]
 pub mod pallet {
 	use orderbook_primitives::traits::LiquidityMiningCrowdSourcePallet;
+	use polkadex_primitives::withdrawal::WithdrawalDestination;
 	use sp_std::collections::btree_map::BTreeMap;
 	// Import various types used to declare pallet in scope.
 	use super::*;
@@ -168,6 +171,7 @@ pub mod pallet {
 	};
 	use parity_scale_codec::Compact;
 	use polkadex_primitives::auction::AuctionInfo;
+	use polkadex_primitives::traits::CrossChainWithdraw;
 	use polkadex_primitives::{assets::AssetId, withdrawal::Withdrawal, ProxyLimit, UNIT_BALANCE};
 	use rust_decimal::{prelude::ToPrimitive, Decimal};
 	use sp_application_crypto::RuntimeAppPublic;
@@ -277,6 +281,9 @@ pub mod pallet {
 		type CrowdSourceLiqudityMining: LiquidityMiningCrowdSourcePallet<
 			<Self as frame_system::Config>::AccountId,
 		>;
+
+		/// CrossChain Withdrawal
+		type CrossChainGadget: CrossChainWithdraw<Self::AccountId>;
 
 		/// Type representing the weight of this pallet
 		type WeightInfo: OcexWeightInfo;
@@ -729,7 +736,7 @@ pub mod pallet {
 			#[pallet::compact] amount: BalanceOf<T>,
 		) -> DispatchResult {
 			let user = ensure_signed(origin)?;
-			Self::do_deposit(user, asset, amount)?;
+			Self::do_deposit(Self::new_random_id(None), user, asset, amount)?;
 			Ok(())
 		}
 
@@ -1055,6 +1062,21 @@ pub mod pallet {
 			Self::start_new_epoch(current_blk);
 			Ok(())
 		}
+
+		/// Governance endpoint for submit Snapshot Summary
+		#[pallet::call_index(24)]
+		#[pallet::weight(< T as Config >::WeightInfo::submit_snapshot())]
+		pub fn force_submit_snapshot(
+			origin: OriginFor<T>,
+			summary: SnapshotSummary<T::AccountId>,
+		) -> DispatchResult {
+			ensure_root(origin)?;
+			let id = summary.snapshot_id;
+			<SnapshotNonce<T>>::put(id);
+			<Snapshots<T>>::insert(id, summary);
+			Self::deposit_event(crate::pallet::Event::<T>::SnapshotProcessed(id));
+			Ok(())
+		}
 	}
 
 	/// Events are a simple means of reporting specific conditions and
@@ -1082,6 +1104,7 @@ pub mod pallet {
 			quote: AssetId,
 		},
 		DepositSuccessful {
+			id: H160,
 			user: T::AccountId,
 			asset: AssetId,
 			amount: BalanceOf<T>,
@@ -1114,7 +1137,7 @@ pub mod pallet {
 		/// AllowlistedTokenRemoved
 		AllowlistedTokenRemoved(AssetId),
 		/// Withdrawal ready to claim
-		WithdrawalReady(u64, Withdrawal<T::AccountId>),
+		WithdrawalReady(u64, Box<Withdrawal<T::AccountId>>),
 		/// Exchange state has been updated
 		ExchangeStateUpdated(bool),
 		/// DisputePeriod has been updated
@@ -1313,6 +1336,16 @@ pub mod pallet {
 		StorageValue<_, AuctionInfo<T::AccountId, BalanceOf<T>>, OptionQuery>;
 
 	impl<T: crate::pallet::Config> crate::pallet::Pallet<T> {
+		pub fn new_random_id(prefix: Option<[u8; 4]>) -> H160 {
+			let mut entropy: [u8; 20] = [0u8; 20];
+			if let Some(prefix) = prefix {
+				entropy[0..4].copy_from_slice(&prefix);
+			}
+			let current_blk = frame_system::Pallet::<T>::current_block_number();
+			entropy[4..].copy_from_slice(&sp_io::hashing::blake2_128(&((current_blk).encode())));
+			H160::from(entropy)
+		}
+
 		pub fn do_withdraw(
 			snapshot_id: u64,
 			mut withdrawal_vector: Vec<Withdrawal<T::AccountId>>,
@@ -1323,14 +1356,14 @@ pub mod pallet {
 				// Perform pop operation to ensure we do not leave any withdrawal left
 				// for a double spend
 				if let Some(withdrawal) = withdrawal_vector.pop() {
-					if Self::on_idle_withdrawal_processor(withdrawal.clone()) {
+					if Self::on_idle_withdrawal_processor(withdrawal.clone()).is_ok() {
 						processed_withdrawals.push(withdrawal.to_owned());
 					} else {
 						// Storing the failed withdrawals back into the storage item
 						failed_withdrawals.push(withdrawal.to_owned());
 						Self::deposit_event(Event::WithdrawalReady(
 							snapshot_id,
-							withdrawal.to_owned(),
+							Box::from(withdrawal.to_owned()),
 						));
 					}
 				}
@@ -1700,6 +1733,7 @@ pub mod pallet {
 		}
 
 		pub fn do_deposit(
+			id: H160,
 			user: T::AccountId,
 			asset: AssetId,
 			amount: BalanceOf<T>,
@@ -1728,12 +1762,13 @@ pub mod pallet {
 			let current_blk = frame_system::Pallet::<T>::current_block_number();
 			<IngressMessages<T>>::mutate(current_blk, |ingress_messages| {
 				ingress_messages.push(orderbook_primitives::ingress::IngressMessages::Deposit(
+					id,
 					user.clone(),
 					asset,
 					converted_amount,
 				));
 			});
-			Self::deposit_event(Event::DepositSuccessful { user, asset, amount });
+			Self::deposit_event(Event::DepositSuccessful { id, user, asset, amount });
 			Ok(())
 		}
 
@@ -1812,22 +1847,52 @@ pub mod pallet {
 
 		/// Performs actual transfer of assets from pallet account to target destination
 		/// Used to finalize withdrawals in extrinsic or on_idle
+		#[transactional]
 		fn on_idle_withdrawal_processor(
 			withdrawal: Withdrawal<<T as frame_system::Config>::AccountId>,
-		) -> bool {
-			if let Some(converted_withdrawal) =
-				withdrawal.amount.saturating_mul(Decimal::from(UNIT_BALANCE)).to_u128()
-			{
-				Self::transfer_asset(
-					&Self::get_pallet_account(),
-					&withdrawal.main_account,
-					converted_withdrawal.saturated_into(),
-					withdrawal.asset,
-				)
-				.is_ok()
-			} else {
-				false
+		) -> DispatchResult {
+			let converted_withdrawal = withdrawal
+				.amount
+				.saturating_mul(Decimal::from(UNIT_BALANCE))
+				.to_u128()
+				.ok_or(Error::<T>::FailedToConvertDecimaltoBalance)?;
+
+			Self::transfer_asset(
+				&Self::get_pallet_account(),
+				&withdrawal.main_account,
+				converted_withdrawal.saturated_into(),
+				withdrawal.asset,
+			)?;
+
+			// on_idle_withdrawal_processor is called in a transacitonal manner so it is okay.
+			if let Some(destination) = withdrawal.destination {
+				match destination {
+					WithdrawalDestination::Polkadot(multi_location, None) => {
+						T::CrossChainGadget::parachain_withdraw(
+							withdrawal.main_account,
+							withdrawal.asset,
+							converted_withdrawal,
+							multi_location,
+							None,
+							None,
+							withdrawal.id,
+						)?
+					},
+					WithdrawalDestination::Polkadot(
+						multi_location,
+						Some((fee_asset_id, fee_amount)),
+					) => T::CrossChainGadget::parachain_withdraw(
+						withdrawal.main_account,
+						withdrawal.asset,
+						converted_withdrawal,
+						multi_location,
+						Some(fee_asset_id),
+						Some(fee_amount),
+						withdrawal.id,
+					)?,
+				}
 			}
+			Ok(())
 		}
 
 		/// Collects onchain registered main and proxy accounts
@@ -1903,11 +1968,7 @@ pub mod pallet {
 			account_ids.push((Self::get_pot_account(), Default::default()));
 
 			let mut balances: BTreeMap<AccountAsset, Decimal> = BTreeMap::new();
-			let mut q_scores_uptime_map = BTreeMap::new();
-			let mut maker_volume_map = BTreeMap::new();
-			let mut taker_volume_map = BTreeMap::new();
-			let mut fees_paid_map = BTreeMap::new();
-			let mut total_maker_volume_map = BTreeMap::new();
+
 			// all offchain balances for main accounts
 			for (account, _) in &account_ids {
 				let main = Self::transform_account(account.clone())?;
@@ -1922,76 +1983,12 @@ pub mod pallet {
 			let snapshot_id = state_info.snapshot_id;
 			let state_change_id = state_info.stid;
 
-			let mut root = crate::storage::load_trie_root();
-			let mut storage = crate::storage::State;
-			let mut state = OffchainState::load(&mut storage, &mut root);
-
-			let registered_tradingpairs = <TradingPairs<T>>::iter()
-				.map(|(base, quote, _)| (base, quote))
-				.collect::<Vec<(AssetId, AssetId)>>();
-
-			let current_epoch = <LMPEpoch<T>>::get();
-
-			for epoch in 0..=current_epoch {
-				for (base, quote) in &registered_tradingpairs {
-					let pair = TradingPair::from(*quote, *base);
-					for (account, _) in &account_ids {
-						let main = Self::transform_account(account.clone())?;
-						// Get Q scores
-						let q_scores_map = crate::lmp::get_q_score_and_uptime_for_checkpoint(
-							&mut state, epoch, &pair, &main,
-						)?;
-
-						if !q_scores_map.is_empty() {
-							q_scores_uptime_map.insert((epoch, pair, main.clone()), q_scores_map);
-						}
-
-						let fees_paid = crate::lmp::get_fees_paid_by_main_account_in_quote(
-							&mut state, epoch, &pair, &main,
-						)?;
-
-						if !fees_paid.is_zero() {
-							fees_paid_map.insert((epoch, pair, main.clone()), fees_paid);
-						}
-
-						let maker_volume = crate::lmp::get_maker_volume_by_main_account(
-							&mut state, epoch, &pair, &main,
-						)?;
-
-						if !maker_volume.is_zero() {
-							maker_volume_map.insert((epoch, pair, main.clone()), maker_volume);
-						}
-
-						let trade_volume = crate::lmp::get_trade_volume_by_main_account(
-							&mut state, epoch, &pair, &main,
-						)?;
-
-						if !trade_volume.is_zero() {
-							taker_volume_map.insert((epoch, pair, main.clone()), trade_volume);
-						}
-					}
-					let total_maker_volume =
-						crate::lmp::get_total_maker_volume(&mut state, epoch, &pair)?;
-					if !total_maker_volume.is_zero() {
-						total_maker_volume_map.insert((epoch, pair), total_maker_volume);
-					}
-				}
-			}
-
-			let config = crate::lmp::get_lmp_config(&mut state, current_epoch)?;
-
 			log::debug!(target:"ocex", "fetch_checkpoint returning");
 			Ok(ObCheckpointRaw {
 				snapshot_id,
 				balances,
 				last_processed_block_number,
 				state_change_id,
-				config,
-				q_scores_uptime_map,
-				maker_volume_map,
-				taker_volume_map,
-				fees_paid_map,
-				total_maker_volume_map,
 			})
 		}
 
@@ -2394,4 +2391,10 @@ impl<T: Config> OneSessionHandler<T::AccountId> for Pallet<T> {
 	}
 
 	fn on_disabled(_i: u32) {}
+}
+
+impl<T: Config> OrderbookOperations<T::AccountId> for Pallet<T> {
+	fn deposit(id: H160, main: T::AccountId, asset: AssetId, amount: u128) -> DispatchResult {
+		Self::do_deposit(id, main, asset, amount.saturated_into())
+	}
 }

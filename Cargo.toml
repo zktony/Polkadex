@@ -49,31 +49,10 @@ members = [
   "pallets/xcm-helper",
   "misc/load-testing",
   "misc/crowdloan-verifier",
+  "polkadex-xcm-simulator",
 ]
 exclude = ["scripts/check-off-on-deviation"]
-default-members = [
-  "client",
-  "nodes/mainnet",
-  "nodes/parachain",
-  "runtimes/mainnet",
-  "runtimes/parachain",
-  "pallets/pdex-migration",
-  "pallets/pdex-migration",
-  "pallets/ocex",
-  "pallets/ocex/rpc",
-  "pallets/liquidity-mining",
-  "pallets/ocex/rpc/runtime-api",
-  "pallets/rewards",
-  "primitives/orderbook",
-  "primitives/polkadex",
-  "primitives/thea",
-  "primitives/bls",
-  "pallets/thea",
-  "pallets/thea-executor",
-  "pallets/rewards/rpc",
-  "pallets/rewards/rpc/runtime-api",
-  "rpc/swap",
-]
+
 
 [workspace.dependencies]
 log = { version = "0.4.8", default-features = false }
@@ -133,7 +112,6 @@ pallet-authority-discovery = { git = "https://github.com/paritytech/polkadot-sdk
 pallet-transaction-payment = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-staking-reward-curve = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-transaction-payment-rpc = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
-#pallet-randomness-collective-flip = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-election-provider-multi-phase = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-transaction-payment-rpc-runtime-api = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }
 pallet-statement = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0", default-features = false }

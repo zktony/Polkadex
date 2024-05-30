@@ -21,6 +21,7 @@
 use crate::lmp::LMPEpochConfig;
 use crate::{ocex::TradingPairConfig, AssetId};
 use parity_scale_codec::{Decode, Encode};
+use primitive_types::H160;
 use rust_decimal::Decimal;
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
@@ -39,8 +40,8 @@ pub enum IngressMessages<AccountId> {
 	UpdateTradingPair(TradingPairConfig),
 	/// Register User ( main, proxy).
 	RegisterUser(AccountId, AccountId),
-	/// Main Acc, Assetid, Amount.
-	Deposit(AccountId, AssetId, Decimal),
+	/// Unique ID, Main Acc, Assetid, Amount.
+	Deposit(H160, AccountId, AssetId, Decimal),
 	/// Main Acc, Proxy Account.
 	AddProxy(AccountId, AccountId),
 	/// Main Acc, Proxy Account.

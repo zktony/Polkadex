@@ -20,7 +20,9 @@ use crate::Pallet as TheaCouncil;
 use frame_benchmarking::v1::{account, benchmarks};
 use frame_support::{sp_runtime::SaturatedConversion, BoundedVec};
 use frame_system::{pallet_prelude::BlockNumberFor, RawOrigin};
-use sp_std::{vec, vec::Vec};
+use sp_core::H160;
+use sp_std::vec;
+use thea_primitives::extras::ExtraData;
 use thea_primitives::types::Withdraw;
 const SEED: u32 = 0;
 
@@ -79,12 +81,13 @@ benchmarks! {
 		// Add Pending Withdrawal
 		let block_no: BlockNumberFor<T> = 100u64.saturated_into();
 		let pending_withdrawal = Withdraw {
-			id: Vec::new(),
-			asset_id: 0,
+			id: H160::zero(),
+			asset_id: polkadex_primitives::AssetId::Asset(0),
 			amount: 0,
 			destination: vec![],
+			fee_asset_id: None,fee_amount: None,
 			is_blocked: false,
-			extra: vec![]
+			extra: ExtraData::None
 		};
 		xcm_helper::Pallet::<T>::insert_pending_withdrawal(block_no, pending_withdrawal);
 	}: _(RawOrigin::Signed(council_member), block_no, 0u32)

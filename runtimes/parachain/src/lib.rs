@@ -179,7 +179,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	spec_name: create_runtime_str!("polkadex-parachain"),
 	impl_name: create_runtime_str!("polkadex-parachain"),
 	authoring_version: 1,
-	spec_version: 13,
+	spec_version: 14,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 1,
@@ -480,7 +480,7 @@ impl xcm_helper::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type AccountIdConvert = LocationToAccountId;
 	type Assets = Assets;
-	type AssetId = u128;
+	type AssetId = polkadex_primitives::AssetId;
 	type Currency = Balances;
 	type AssetCreateUpdateOrigin = EnsureRoot<AccountId>;
 	type Executor = TheaMessageHandler;

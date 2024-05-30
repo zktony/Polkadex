@@ -20,14 +20,16 @@
 
 use frame_support::__private::log;
 use parity_scale_codec::{Decode, Encode};
-use polkadex_primitives::UNIT_BALANCE;
+use polkadex_primitives::{AssetId, UNIT_BALANCE};
 use scale_info::TypeInfo;
 use serde::{Deserialize, Serialize};
+use sp_core::H160;
 use sp_runtime::Percent;
 #[cfg(not(feature = "std"))]
 use sp_std::vec::Vec;
 use sp_std::{cmp::Ordering, collections::btree_map::BTreeMap};
 
+use crate::extras::ExtraData;
 use crate::{Network, ValidatorSetId};
 
 /// Defines the message structure.
@@ -228,15 +230,15 @@ pub enum Destination {
 #[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
 pub struct Deposit<AccountId> {
 	/// Identifier of the deposit.
-	pub id: Vec<u8>, // Unique identifier
+	pub id: H160, // Unique identifier
 	/// Receiver of the deposit.
 	pub recipient: AccountId,
 	/// Asset identifier.
-	pub asset_id: u128,
+	pub asset_id: AssetId,
 	/// Amount of the deposit.
 	pub amount: u128,
 	/// Extra data.
-	pub extra: Vec<u8>,
+	pub extra: ExtraData,
 }
 
 impl<AccountId> Deposit<AccountId> {
@@ -255,58 +257,28 @@ impl<AccountId> Deposit<AccountId> {
 #[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
 pub struct Withdraw {
 	/// Identifier of the withdrawal.
-	pub id: Vec<u8>,
+	pub id: H160,
 	// Unique identifier
 	/// Asset identifier.
-	pub asset_id: u128,
-	/// Amount of the withdrawal.
-	pub amount: u128,
-	/// Receiver of the withdrawal.
-	pub destination: Vec<u8>,
-	/// Defines if withdraw operation is blocked.
-	pub is_blocked: bool,
-	/// Extra data.
-	pub extra: Vec<u8>,
-}
-
-impl From<NewWithdraw> for Withdraw {
-	fn from(value: NewWithdraw) -> Self {
-		Self {
-			id: value.id,
-			asset_id: value.asset_id,
-			amount: value.amount,
-			destination: value.destination,
-			is_blocked: value.is_blocked,
-			extra: value.extra,
-		}
-	}
-}
-
-#[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug)]
-pub struct NewWithdraw {
-	/// Identifier of the withdrawal.
-	pub id: Vec<u8>,
-	// Unique identifier
-	/// Asset identifier.
-	pub asset_id: u128,
+	pub asset_id: AssetId,
 	/// Amount of the withdrawal.
 	pub amount: u128,
 	/// Receiver of the withdrawal.
 	pub destination: Vec<u8>,
 	/// Fee Asset Id
-	pub fee_asset_id: Option<u128>,
+	pub fee_asset_id: Option<AssetId>,
 	/// Fee Amount
 	pub fee_amount: Option<u128>,
 	/// Defines if withdraw operation is blocked.
 	pub is_blocked: bool,
 	/// Extra data.
-	pub extra: Vec<u8>,
+	pub extra: ExtraData,
 }
 
 /// Metadata of asset's decimals
 #[derive(Encode, Decode, Clone, TypeInfo, PartialEq, Debug, Copy)]
 pub struct AssetMetadata {
-	decimal: u8,
+	pub decimal: u8,
 }
 
 impl AssetMetadata {

@@ -30,14 +30,15 @@ const KEY: [u8; 33] = [
 	2, 10, 16, 145, 52, 31, 229, 102, 75, 250, 23, 130, 213, 224, 71, 121, 104, 144, 104, 201, 22,
 	176, 76, 179, 101, 236, 49, 83, 117, 86, 132, 217, 161,
 ];
+use sp_core::H160;
 
 fn generate_deposit_payload<T: Config>() -> Vec<Deposit<T::AccountId>> {
 	sp_std::vec![Deposit {
-		id: H256::zero().0.to_vec(),
+		id: H160::zero(),
 		recipient: T::AccountId::decode(&mut &[0u8; 32][..]).unwrap(),
-		asset_id: 0,
+		asset_id: AssetId::Asset(0),
 		amount: 0,
-		extra: Vec::new(),
+		extra: ExtraData::None,
 	}]
 }
 
@@ -91,7 +92,8 @@ benchmarks! {
 
 #[cfg(test)]
 use frame_benchmarking::impl_benchmark_test_suite;
-use sp_core::H256;
+use polkadex_primitives::AssetId;
+use thea_primitives::extras::ExtraData;
 use thea_primitives::types::Deposit;
 
 #[cfg(test)]

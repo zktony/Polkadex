@@ -122,7 +122,7 @@ pub const VERSION: RuntimeVersion = RuntimeVersion {
 	// and set impl_version to 0. If only runtime
 	// implementation changes and behavior does not, then leave spec_version as
 	// is and increment impl_version.
-	spec_version: 351,
+	spec_version: 358,
 	impl_version: 0,
 	apis: RUNTIME_API_VERSIONS,
 	transaction_version: 2,
@@ -1300,6 +1300,7 @@ impl pallet_ocex_lmp::Config for Runtime {
 	type CrowdSourceLiqudityMining = ();
 	type OBWithdrawalLimit = OBWithdrawalLimit;
 	type WeightInfo = pallet_ocex_lmp::weights::WeightInfo<Runtime>;
+	type CrossChainGadget = TheaExecutor;
 }
 
 //Install rewards Pallet
@@ -1359,7 +1360,7 @@ impl thea_executor::Config for Runtime {
 	type RuntimeEvent = RuntimeEvent;
 	type Currency = Balances;
 	type Assets = Assets;
-	type AssetId = u128;
+	type AssetId = polkadex_primitives::AssetId;
 	type AssetCreateUpdateOrigin = EnsureRootOrHalfCouncil;
 	type Executor = Thea;
 	type NativeAssetId = PolkadexAssetId;
@@ -1372,6 +1373,7 @@ impl thea_executor::Config for Runtime {
 	type AssetBalanceAdapter = u128;
 	type GovernanceOrigin = EnsureRootOrHalfCouncil;
 	type ExistentialDeposit = AutoSwapInitialNativeDeposit;
+	type Orderbook = OCEX;
 }
 
 #[cfg(feature = "runtime-benchmarks")]

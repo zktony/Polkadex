@@ -15,7 +15,9 @@
 
 use crate::{mock::*, Error, PendingWithdrawals};
 use frame_support::{assert_noop, assert_ok, traits::Currency};
+use sp_core::H160;
 use sp_runtime::{traits::AccountIdConversion, DispatchError, SaturatedConversion};
+use thea_primitives::extras::ExtraData;
 use thea_primitives::types::Withdraw;
 use xcm::latest::{AssetId, MultiLocation};
 
@@ -124,31 +126,37 @@ fn test_transfer_fee_with_bad_origin_will_return_bad_origin_error() {
 fn test_block_by_ele() {
 	new_test_ext().execute_with(|| {
 		let first_withdrawal = Withdraw {
-			id: Vec::new(),
-			asset_id: 1,
+			id: H160::zero(),
+			asset_id: polkadex_primitives::AssetId::Asset(1),
 			amount: 1,
 			destination: vec![],
+			fee_asset_id: None,
+			fee_amount: None,
 			is_blocked: false,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		let sec_withdrawal = Withdraw {
-			id: Vec::new(),
-			asset_id: 2,
+			id: H160::zero(),
+			asset_id: polkadex_primitives::AssetId::Asset(1),
 			amount: 2,
 			destination: vec![],
+			fee_asset_id: None,
+			fee_amount: None,
 			is_blocked: false,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		<PendingWithdrawals<Test>>::insert(1, vec![first_withdrawal, sec_withdrawal]);
 		assert_ok!(XcmHelper::block_by_ele(1, 1));
 		let actual_withdrawals = <PendingWithdrawals<Test>>::get(1);
 		let expected_withdraw = Withdraw {
-			id: Vec::new(),
-			asset_id: 2,
+			id: H160::zero(),
+			asset_id: polkadex_primitives::AssetId::Asset(1),
 			amount: 2,
 			destination: vec![],
+			fee_asset_id: None,
+			fee_amount: None,
 			is_blocked: true,
-			extra: vec![],
+			extra: ExtraData::None,
 		};
 		assert_eq!(actual_withdrawals[1], expected_withdraw);
 		assert_noop!(XcmHelper::block_by_ele(1, 4), Error::<Test>::IndexNotFound);
