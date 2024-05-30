@@ -448,16 +448,6 @@ parameter_types! {
 	pub ReachableDest: Option<MultiLocation> = Some(Parent.into());
 }
 
-pub struct TrustedLockerCase<T>(PhantomData<T>);
-impl<T: Get<(MultiLocation, MultiAssetFilter)>> ContainsPair<MultiLocation, MultiAsset>
-	for TrustedLockerCase<T>
-{
-	fn contains(origin: &MultiLocation, asset: &MultiAsset) -> bool {
-		let (o, a) = T::get();
-		a.matches(asset) && &o == origin
-	}
-}
-
 parameter_types! {
 	pub RelayTokenForRelay: (MultiLocation, MultiAssetFilter) = (Parent.into(), Wild(AllOf { id: Concrete(Parent.into()), fun: WildFungible }));
 }
@@ -518,6 +508,20 @@ impl pallet_assets::Config for Runtime {
 	type Extra = ();
 	type CallbackHandle = ();
 	type WeightInfo = ();
+	#[cfg(feature = "runtime-benchmarks")]
+	type BenchmarkHelper = AssetU128;
+}
+
+#[cfg(feature = "runtime-benchmarks")]
+pub struct AssetU128;
+#[cfg(feature = "runtime-benchmarks")]
+use pallet_assets::BenchmarkHelper;
+
+#[cfg(feature = "runtime-benchmarks")]
+impl BenchmarkHelper<codec::Compact<u128>> for AssetU128 {
+	fn create_asset_id_parameter(id: u32) -> codec::Compact<u128> {
+		codec::Compact::from(id as u128)
+	}
 }
 
 pub const POLKADEX_NATIVE_ASSET_ID: u128 = 0;
