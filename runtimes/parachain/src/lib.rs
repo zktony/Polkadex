@@ -490,6 +490,7 @@ impl xcm_helper::Config for Runtime {
 	type SubstrateNetworkId = ParachainNetworkId;
 	type NativeAssetId = PolkadexAssetid;
 	type WeightInfo = xcm_helper::weights::WeightInfo<Runtime>;
+	type SiblingAddressConverter = SiblingParachainConvertsVia<Sibling, AccountId>;
 }
 
 parameter_types! {
@@ -538,6 +539,8 @@ impl pallet_assets::Config for Runtime {
 pub struct AssetU128;
 #[cfg(feature = "runtime-benchmarks")]
 use pallet_assets::BenchmarkHelper;
+use polkadot_parachain::primitives::Sibling;
+use xcm_builder::SiblingParachainConvertsVia;
 
 #[cfg(feature = "runtime-benchmarks")]
 impl BenchmarkHelper<parity_scale_codec::Compact<u128>> for AssetU128 {
