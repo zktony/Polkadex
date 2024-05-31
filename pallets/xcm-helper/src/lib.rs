@@ -298,6 +298,8 @@ pub mod pallet {
 		NotAbleToMakeXcmCall,
 		/// Not able to handle Destination
 		NotAbleToHandleDestination,
+		/// Xcm sibling deposit failed
+		XcmSiblingDepositFailed(Box<MultiLocation>, Box<MultiAsset>),
 	}
 
 	// Errors inform users that something went wrong.
@@ -435,6 +437,10 @@ pub mod pallet {
 				.is_err()
 				{
 					log::error!(target:"xcm-helper","Deposit Failed");
+					Self::deposit_event(Event::<T>::XcmSiblingDepositFailed(
+						Box::new(*who),
+						Box::new(what.clone()),
+					));
 				};
 				Self::deposit_event(Event::<T>::SiblingDeposit(
 					Box::new(*who),
@@ -789,6 +795,7 @@ pub mod pallet {
 									.is_err()
 									{
 										failed_withdrawal.push(withdrawal.clone());
+										Self::deposit_event(Event::<T>::NotAbleToMintToken);
 										log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 									};
 								}
@@ -804,6 +811,7 @@ pub mod pallet {
 								.is_err()
 								{
 									failed_withdrawal.push(withdrawal.clone());
+									Self::deposit_event(Event::<T>::NotAbleToMintToken);
 									log::error!(target:"xcm-helper","Withdrawal failed: Not able to mint token");
 								};
 								if let Err(err) =
