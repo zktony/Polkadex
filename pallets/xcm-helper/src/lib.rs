@@ -273,6 +273,7 @@ pub mod pallet {
 			Box<MultiLocation>,
 			Box<MultiAsset>,
 			polkadex_primitives::AssetId,
+			u128, // Amount
 			ExtraData,
 		),
 		/// Sibling Deposit
@@ -300,6 +301,10 @@ pub mod pallet {
 		NotAbleToHandleDestination,
 		/// Xcm sibling deposit failed
 		XcmSiblingDepositFailed(Box<MultiLocation>, Box<MultiAsset>),
+		/// Parachain asset mapped
+		ParachainAssetMapped(polkadex_primitives::AssetId, Box<AssetId>),
+		/// Parachain asset not mapped
+		ParachainAssetNotMapped,
 	}
 
 	// Errors inform users that something went wrong.
@@ -401,6 +406,22 @@ pub mod pallet {
 			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount.saturated_into()));
 			Ok(())
 		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::WeightInfo::transfer_fee(1))]
+		pub fn insert_asset(
+			origin: OriginFor<T>,
+			asset_id: polkadex_primitives::AssetId,
+			asset_multilocation: AssetId,
+		) -> DispatchResult {
+			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
+			<ParachainAssets<T>>::insert(asset_id, asset_multilocation);
+			Self::deposit_event(Event::<T>::ParachainAssetMapped(
+				asset_id,
+				Box::new(asset_multilocation),
+			));
+			Ok(())
+		}
 	}
 
 	impl<T: Config> Convert<polkadex_primitives::AssetId, Option<MultiLocation>> for Pallet<T> {
@@ -470,6 +491,7 @@ pub mod pallet {
 					Box::new(*who),
 					Box::new(what.clone()),
 					asset_id,
+					amount,
 					extra,
 				));
 			}
@@ -838,7 +860,7 @@ pub mod pallet {
 								}
 							} else {
 								log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
-								Self::deposit_event(Event::<T>::NotAbleToDecodeDestination);
+								Self::deposit_event(Event::<T>::ParachainAssetNotMapped);
 								failed_withdrawal.push(withdrawal);
 							}
 						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
