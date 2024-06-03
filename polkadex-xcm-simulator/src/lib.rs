@@ -153,7 +153,7 @@ mod tests {
 	use super::*;
 
 	use crate::parachain::{Balances, XcmHelper};
-	use codec::Encode;
+	use codec::{Decode, Encode};
 	use frame_support::traits::fungible::Mutate;
 	use frame_support::{assert_ok, weights::Weight};
 	use thea_primitives::extras::ExtraData;
@@ -631,6 +631,26 @@ mod tests {
 				r.event,
 				RuntimeEvent::XcmHelper(xcm_helper::Event::AssetDeposited(..))
 			)));
+		})
+	}
+
+	#[test]
+	fn test_with_thea_payload() {
+		MockNet::reset();
+		ParaA::execute_with(|| {
+			let hex = hex::decode("0400000000c9104ef90d846adb8cd6727f57c8e46d010010a5d4e800000000000000000000007003010200511f03007b9a3a0bd813c61006d94c7206137052f1cd6ce100000000").unwrap();
+			let payload: Vec<thea_primitives::types::Withdraw> =
+				Decode::decode(&mut &hex[..]).unwrap();
+			let block_no = 1;
+			let multlocation =
+				MultiLocation { parents: 1, interior: Junctions::X1(Junction::Parachain(1)) };
+			let pdex_asset_id = AssetId::Concrete(multlocation);
+			XcmHelper::insert_parachain_asset(
+				pdex_asset_id,
+				polkadex_primitives::AssetId::Polkadex,
+			);
+			XcmHelper::insert_pending_withdrawal(block_no, payload.first().unwrap().clone());
+			XcmHelper::handle_new_pending_withdrawals(block_no);
 		})
 	}
 }

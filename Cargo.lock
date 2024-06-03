@@ -8010,6 +8010,7 @@ version = "1.0.0"
 dependencies = [
  "frame-support",
  "frame-system",
+ "hex",
  "log",
  "orml-traits",
  "orml-xcm-support",

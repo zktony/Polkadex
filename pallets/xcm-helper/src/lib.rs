@@ -300,6 +300,10 @@ pub mod pallet {
 		NotAbleToHandleDestination,
 		/// Xcm sibling deposit failed
 		XcmSiblingDepositFailed(Box<MultiLocation>, Box<MultiAsset>),
+		/// Parachain asset mapped
+		ParachainAssetMapped(polkadex_primitives::AssetId, AssetId),
+		/// Parachain asset not mapped
+		ParachainAssetNotMapped,
 	}
 
 	// Errors inform users that something went wrong.
@@ -399,6 +403,19 @@ pub mod pallet {
 				T::Currency::reducible_balance(&from, Preservation::Preserve, Fortitude::Polite);
 			T::Currency::transfer(&from, &to, amount, Preservation::Protect)?;
 			Self::deposit_event(Event::<T>::XcmFeeTransferred(to, amount.saturated_into()));
+			Ok(())
+		}
+
+		#[pallet::call_index(4)]
+		#[pallet::weight(T::WeightInfo::transfer_fee(1))]
+		pub fn insert_asset(
+			origin: OriginFor<T>,
+			asset_id: polkadex_primitives::AssetId,
+			asset_multilocation: AssetId,
+		) -> DispatchResult {
+			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
+			<ParachainAssets<T>>::insert(asset_id, asset_multilocation);
+			Self::deposit_event(Event::<T>::ParachainAssetMapped(asset_id, asset_multilocation));
 			Ok(())
 		}
 	}
@@ -838,7 +855,7 @@ pub mod pallet {
 								}
 							} else {
 								log::error!(target:"xcm-helper","Withdrawal failed: Not able to handle dest");
-								Self::deposit_event(Event::<T>::NotAbleToDecodeDestination);
+								Self::deposit_event(Event::<T>::ParachainAssetNotMapped);
 								failed_withdrawal.push(withdrawal);
 							}
 						} else if Self::handle_deposit(withdrawal.clone(), destination).is_err() {
