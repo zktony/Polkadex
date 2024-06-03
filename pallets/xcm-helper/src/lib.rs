@@ -273,6 +273,7 @@ pub mod pallet {
 			Box<MultiLocation>,
 			Box<MultiAsset>,
 			polkadex_primitives::AssetId,
+			u128, // Amount
 			ExtraData,
 		),
 		/// Sibling Deposit
@@ -301,7 +302,7 @@ pub mod pallet {
 		/// Xcm sibling deposit failed
 		XcmSiblingDepositFailed(Box<MultiLocation>, Box<MultiAsset>),
 		/// Parachain asset mapped
-		ParachainAssetMapped(polkadex_primitives::AssetId, AssetId),
+		ParachainAssetMapped(polkadex_primitives::AssetId, Box<AssetId>),
 		/// Parachain asset not mapped
 		ParachainAssetNotMapped,
 	}
@@ -415,7 +416,10 @@ pub mod pallet {
 		) -> DispatchResult {
 			T::AssetCreateUpdateOrigin::ensure_origin(origin)?;
 			<ParachainAssets<T>>::insert(asset_id, asset_multilocation);
-			Self::deposit_event(Event::<T>::ParachainAssetMapped(asset_id, asset_multilocation));
+			Self::deposit_event(Event::<T>::ParachainAssetMapped(
+				asset_id,
+				Box::new(asset_multilocation),
+			));
 			Ok(())
 		}
 	}
@@ -487,6 +491,7 @@ pub mod pallet {
 					Box::new(*who),
 					Box::new(what.clone()),
 					asset_id,
+					amount,
 					extra,
 				));
 			}
