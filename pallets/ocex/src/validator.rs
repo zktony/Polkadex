@@ -122,7 +122,6 @@ impl<T: Config> Pallet<T> {
 					info
 				} else if info.snapshot_id != 0 {
 					log::error!(target:"ocex","Unable to load last processed snapshot summary from on-chain: {:?}",info.snapshot_id);
-					store_trie_root(H256::zero());
 					return Err("Unable to load last processed snapshot summary from on-chain");
 				} else {
 					info
