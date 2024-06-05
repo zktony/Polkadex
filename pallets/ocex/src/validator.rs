@@ -120,7 +120,7 @@ impl<T: Config> Pallet<T> {
 						return Err("Last processed snapshot root is not same as on-chain root");
 					}
 					info
-				} else if info.snapshot_id != 0 {
+				} else if info.snapshot_id != 0 && info.snapshot_id != next_nonce {
 					log::error!(target:"ocex","Unable to load last processed snapshot summary from on-chain: {:?}",info.snapshot_id);
 					return Err("Unable to load last processed snapshot summary from on-chain");
 				} else {
