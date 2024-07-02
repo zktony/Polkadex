@@ -107,6 +107,7 @@ pub fn create_extrinsic(
 			pallet_asset_conversion_tx_payment::ChargeAssetTxPayment::<
 				node_polkadex_runtime::Runtime,
 			>::from(tip, None),
+			frame_metadata_hash_extension::CheckMetadataHash::new(false)
 		);
 
 	let raw_payload = node_polkadex_runtime::SignedPayload::from_raw(
@@ -121,6 +122,7 @@ pub fn create_extrinsic(
 			(),
 			(),
 			(),
+			None
 		),
 	);
 	let signature = raw_payload.using_encoded(|e| sender.sign(e));
