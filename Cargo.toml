@@ -211,3 +211,6 @@ polkadot-parachain = { package = "polkadot-parachain-primitives", git = "https:/
 polkadot-runtime-common = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "release-polkadot-v1.1.0" }
 sp-consensus-aura = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "release-polkadot-v1.1.0" }
 frame-metadata-hash-extension = { git = "https://github.com/paritytech/polkadot-sdk", default-features = false, branch = "release-polkadot-v1.1.0" }
+
+[patch.'https://github.com/w3f/ring-vrf']
+bandersnatch_vrfs = { git = "https://github.com/w3f//ring-vrf.git", rev = "3ebdd261873da05124f4499c85a8e62d40411620"}
