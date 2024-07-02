@@ -5801,9 +5801,11 @@ checksum = "43794a0ace135be66a25d3ae77d41b91615fb68ae937f904090203e81f755b65"
 name = "node-polkadex-runtime"
 version = "6.0.0"
 dependencies = [
+ "docify",
  "frame-benchmarking",
  "frame-election-provider-support",
  "frame-executive",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-system-benchmarking",
@@ -7941,6 +7943,7 @@ version = "6.0.0"
 dependencies = [
  "clap 4.5.7",
  "frame-benchmarking-cli",
+ "frame-metadata-hash-extension",
  "frame-support",
  "frame-system",
  "frame-try-runtime",

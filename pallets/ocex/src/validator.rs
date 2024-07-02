@@ -82,8 +82,7 @@ impl<T: Config> Pallet<T> {
 		let authorities = Self::validator_set().validators;
 		let mut available_keys = authorities
 			.iter()
-			.enumerate()
-			.filter_map(move |(_index, authority)| {
+			.filter_map(move |authority| {
 				local_keys
 					.binary_search(authority)
 					.ok()
@@ -671,7 +670,7 @@ impl<T: Config> Pallet<T> {
 	fn start_new_lmp_epoch(state: &mut OffchainState, epoch: u16) -> Result<(), &'static str> {
 		let mut config = if epoch > 1 {
 			get_lmp_config(state, epoch)
-				.unwrap_or_else(|_| orderbook_primitives::lmp::LMPConfig { epoch, index: 0 })
+				.unwrap_or(orderbook_primitives::lmp::LMPConfig { epoch, index: 0 })
 		} else {
 			// To Handle the corner case of zero
 			orderbook_primitives::lmp::LMPConfig { epoch, index: 0 }
