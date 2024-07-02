@@ -2250,7 +2250,7 @@ impl<T: Config + frame_system::offchain::SendTransactionTypes<Call<T>>> Pallet<T
 
 		//Check threshold
 
-		const THRESHOLD: u8 = 45; //  Temporary fix to unlock withdrawals bug in validators
+		const THRESHOLD: u8 = 51;
 		let p = Percent::from_percent(THRESHOLD);
 		let threshold = p * authorities.len();
 
