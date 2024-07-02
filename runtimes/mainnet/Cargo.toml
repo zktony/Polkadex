@@ -120,7 +120,7 @@ pallet-rewards-runtime-api = { path = "../../pallets/rewards/rpc/runtime-api", d
 pallet-ocex-runtime-api = { path = "../../pallets/ocex/rpc/runtime-api", default-features = false }
 frame-metadata-hash-extension = { workspace = true, default-features = false }
 [build-dependencies]
-substrate-wasm-builder = { workspace = true }
+substrate-wasm-builder = { workspace = true , features = ["frame-metadata"]}
 docify = "0.2.8"
 
 [features]
