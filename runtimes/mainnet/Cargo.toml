@@ -118,14 +118,29 @@ frame-try-runtime = { workspace = true, optional = true, default-features = fals
 rpc-assets-runtime-api = { path = "../../rpc/assets/runtime-api", default-features = false }
 pallet-rewards-runtime-api = { path = "../../pallets/rewards/rpc/runtime-api", default-features = false }
 pallet-ocex-runtime-api = { path = "../../pallets/ocex/rpc/runtime-api", default-features = false }
-
+frame-metadata-hash-extension = { workspace = true, default-features = false }
 [build-dependencies]
-substrate-wasm-builder = { workspace = true }
+substrate-wasm-builder = { workspace = true , features = ["frame-metadata"]}
+docify = "0.2.8"
 
 [features]
 default = ["std"]
+# Enable the metadata hash generation.
+#
+# This is hidden behind a feature because it increases the compile time.
+# The wasm binary needs to be compiled twice, once to fetch the metadata,
+# generate the metadata hash and then a second time with the
+# `RUNTIME_METADATA_HASH` environment variable set for the `CheckMetadataHash`
+# extension.
+metadata-hash = ["substrate-wasm-builder/metadata-hash"]
+
+# A convenience feature for enabling things when doing a build
+# for an on-chain release.
+on-chain-release-build = ["metadata-hash"]
+
 std = [
   "rust_decimal/std",
+  "frame-metadata-hash-extension/std",
   "parity-scale-codec/std",
   "scale-info/std",
   "log/std",
