@@ -11,6 +11,7 @@ log = { version = "0.4.14", default-features = false }
 frame-system = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 frame-support = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 pallet-balances = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+pallet-assets = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 pallet-message-queue = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 pallet-uniques = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 sp-std = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
@@ -27,6 +28,23 @@ pallet-xcm = { git = "https://github.com/paritytech/polkadot-sdk", branch = "rel
 polkadot-core-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 polkadot-runtime-parachains = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
 polkadot-parachain-primitives = { git = "https://github.com/paritytech/polkadot-sdk", branch = "release-polkadot-v1.1.0" }
+
+#ORML Pallets
+orml-xtokens = { git = "https://github.com/Polkadex-Substrate/orml-1.1.0.git", branch = "master" }
+orml-xcm-support = { git = "https://github.com/Polkadex-Substrate/orml-1.1.0.git", branch = "master" }
+orml-traits = { git = "https://github.com/Polkadex-Substrate/orml-1.1.0.git", branch = "master" }
+
+#Polkadex Pallets
+thea-primitives = { workspace = true }
+polkadex-primitives = { workspace = true }
+xcm-helper = { path = "../pallets/xcm-helper" }
+thea-message-handler = { path = "../pallets/thea-message-handler" }
+thea = { path = "../pallets/thea" }
+smallvec = "1.13.1"
+hex = "0.4.3"
+
+
+
 
 [features]
 default = []

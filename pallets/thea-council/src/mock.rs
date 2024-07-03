@@ -144,6 +144,7 @@ impl xcm_helper::Config for Test {
 	type SubstrateNetworkId = frame_support::traits::ConstU8<0>;
 	type NativeAssetId = NativeAssetId;
 	type WeightInfo = xcm_helper::weights::WeightInfo<Test>;
+	type SiblingAddressConverter = ();
 }
 
 parameter_types! {
