@@ -17,6 +17,7 @@ substrate-build-script-utils = { git = "https://github.com/paritytech/polkadot-s
 structopt = { version = "0.3.8", optional = true }
 
 [dependencies]
+frame-metadata-hash-extension = { workspace = true }
 # third-party dependencies
 codec = { package = "parity-scale-codec", version = "3.0.0" }
 serde = { version = "1.0.136", features = ["derive"] }
