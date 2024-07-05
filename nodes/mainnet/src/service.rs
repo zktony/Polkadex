@@ -851,7 +851,7 @@ mod tests {
 					check_nonce,
 					check_weight,
 					tx_payment,
-					frame_metadata_hash_extension::CheckMetadataHash::new(false)
+					frame_metadata_hash_extension::CheckMetadataHash::new(false),
 				);
 				let raw_payload = node_polkadex_runtime::SignedPayload::from_raw(
 					function.clone(),
@@ -865,7 +865,7 @@ mod tests {
 						(),
 						(),
 						(),
-						None
+						None,
 					),
 				);
 				let signature = raw_payload.using_encoded(|payload| signer.sign(payload));
